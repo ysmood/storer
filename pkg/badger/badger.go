@@ -27,9 +27,7 @@ func New(dir string) *Badger {
 		}
 	}
 
-	dbOpts := badger.DefaultOptions
-	dbOpts.Dir = dir
-	dbOpts.ValueDir = dir
+	dbOpts := badger.DefaultOptions(dir).WithLogger(nil)
 	db, err := badger.Open(dbOpts)
 	if err != nil {
 		panic(err)
@@ -58,7 +56,7 @@ func (b *Badger) Do(update bool, fn kvstore.DoTxn) error {
 	}
 
 	if update {
-		return txn.Commit(nil)
+		return txn.Commit()
 	}
 	return nil
 }
@@ -84,7 +82,7 @@ func (t *Txn) Get(key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	val, err := item.Value()
+	val, err := item.ValueCopy(nil)
 	if err != nil {
 		return nil, err
 	}
