@@ -1,6 +1,10 @@
 package badger
 
 import (
+	"fmt"
+	"os"
+	"time"
+
 	"github.com/dgraph-io/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
@@ -12,8 +16,17 @@ type Badger struct {
 	db *badger.DB
 }
 
-// New a helper to create a badger adapter instance
+// New a helper to create a badger adapter instance.
+// If the dir is empty a tmp dir will be created.
 func New(dir string) *Badger {
+	if dir == "" {
+		dir = fmt.Sprintf("tmp/%d", time.Now().UnixNano())
+		err := os.MkdirAll(dir, 0775)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	dbOpts := badger.DefaultOptions
 	dbOpts.Dir = dir
 	dbOpts.ValueDir = dir
