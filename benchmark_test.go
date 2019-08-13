@@ -9,7 +9,7 @@ import (
 )
 
 func BenchmarkSet(b *testing.B) {
-	users, _ := store.List(&User{})
+	users := store.List(&User{})
 
 	user := &User{Name: "jack", Level: 1}
 
@@ -21,7 +21,7 @@ func BenchmarkSet(b *testing.B) {
 }
 
 func BenchmarkGet(b *testing.B) {
-	users, _ := store.List(&User{})
+	users := store.List(&User{})
 
 	user := &User{Name: "jack", Level: 1}
 
@@ -39,9 +39,9 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
-func BenchmarkRange(b *testing.B) {
-	users, _ := store.List(&User{})
-	index, _ := users.Index("level", func(ctx *storer.GenCtx) interface{} {
+func BenchmarkFilter(b *testing.B) {
+	users := store.List(&User{})
+	index := users.Index("level", func(ctx *storer.GenCtx) interface{} {
 		return ctx.Item.(*User).Level
 	})
 
@@ -57,8 +57,8 @@ func BenchmarkRange(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		kit.E(index.For(9990).Range(&items, func(_ *storer.IterCtx) bool {
-			return true
+		kit.E(index.From(9990).Filter(&items, func(_ *storer.IterCtx) (bool, bool) {
+			return true, true
 		}))
 	}
 }

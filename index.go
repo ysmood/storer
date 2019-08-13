@@ -132,29 +132,29 @@ func (index *Index) Txn(txn kvstore.Txn) *IndexTxn {
 	}
 }
 
-// ForByBytes ...
-func (txnCtx *IndexTxn) ForByBytes(from []byte) *ForCtx {
-	return &ForCtx{
+// FromByBytes ...
+func (txnCtx *IndexTxn) FromByBytes(from []byte) *FromCtx {
+	return &FromCtx{
 		txnCtx: txnCtx,
 		from:   from,
 	}
 }
 
-// ForCtx ...
-type ForCtx struct {
+// FromCtx ...
+type FromCtx struct {
 	txnCtx  *IndexTxn
 	from    []byte
 	reverse bool
 }
 
 // Reverse iterate reversely
-func (ctx *ForCtx) Reverse() *ForCtx {
+func (ctx *FromCtx) Reverse() *FromCtx {
 	ctx.reverse = true
 	return ctx
 }
 
 // Each ...
-func (ctx *ForCtx) Each(fn Iteratee) error {
+func (ctx *FromCtx) Each(fn Iteratee) error {
 	prefix := ctx.txnCtx.index.bucket.Prefix(byframe.Encode(ctx.from))
 
 	return ctx.txnCtx.txn.Do(ctx.reverse, prefix, func(itCtx kvstore.IterCtx) error {
@@ -173,7 +173,7 @@ func (ctx *ForCtx) Each(fn Iteratee) error {
 
 // IterCtx ...
 type IterCtx struct {
-	forCtx *ForCtx
+	forCtx *FromCtx
 	it     kvstore.IterCtx
 }
 

@@ -10,15 +10,19 @@ import (
 )
 
 // GenIndex if it returns error the transaction will fail
-type GenIndex func(*GenCtx) interface{}
+type GenIndex func(ctx *GenCtx) interface{}
 
-// For string version of ForByBytes
-func (txnCtx *IndexTxn) For(from interface{}) *ForCtx {
+// From string version of FromByBytes
+func (txnCtx *IndexTxn) From(from interface{}) *FromCtx {
+	if from == nil {
+		return txnCtx.FromByBytes(nil)
+	}
+
 	b, err := bytesort.Encode(from)
 	if err != nil {
 		panic(err)
 	}
-	return txnCtx.ForByBytes(b)
+	return txnCtx.FromByBytes(b)
 }
 
 // Prefix whether the prefix matches the whole key
@@ -27,7 +31,7 @@ func (ctx *IterCtx) prefix() bool {
 }
 
 // Has ...
-func (ctx *ForCtx) Has() (bool, error) {
+func (ctx *FromCtx) Has() (bool, error) {
 	has := false
 	err := ctx.Each(func(ctx *IterCtx) error {
 		has = ctx.prefix()
@@ -40,7 +44,7 @@ func (ctx *ForCtx) Has() (bool, error) {
 var ErrNotFound = errors.New("Not found")
 
 // Find items can be a list or a singular
-func (ctx *ForCtx) Find(items interface{}) error {
+func (ctx *FromCtx) Find(items interface{}) error {
 	listValue := reflect.ValueOf(items).Elem()
 
 	var itemType reflect.Type
@@ -78,43 +82,31 @@ func (ctx *ForCtx) Find(items interface{}) error {
 	return err
 }
 
-// ReduceFilter ...
-type ReduceFilter func(*IterCtx) (interface{}, error)
+// Filter ...
+type Filter func(ctx *IterCtx) (match bool, isContinue bool)
 
-// Reduce ...
-func (ctx *ForCtx) Reduce(items interface{}, fn ReduceFilter) error {
-	listValue := reflect.ValueOf(items).Elem()
-
-	return ctx.Each(func(ctx *IterCtx) error {
-		item, err := fn(ctx)
-		if err != nil {
-			return err
-		}
-
-		listValue.Set(reflect.Append(listValue, reflect.ValueOf(item).Elem()))
-		return nil
-	})
-}
-
-// RangeFilter ...
-type RangeFilter func(*IterCtx) bool
-
-// Range ...
-func (ctx *ForCtx) Range(items interface{}, fn RangeFilter) error {
+// Filter ...
+func (ctx *FromCtx) Filter(items interface{}, fn Filter) error {
 	listValue := reflect.ValueOf(items).Elem()
 	itemType := listValue.Type().Elem()
 
-	return ctx.Reduce(items, func(ctx *IterCtx) (interface{}, error) {
-		if !fn(ctx) {
-			return nil, ErrStop
+	return ctx.Each(func(ctx *IterCtx) error {
+		match, isContinue := fn(ctx)
+
+		if match {
+			item := reflect.New(itemType)
+			err := ctx.Item(item.Interface())
+			if err != nil {
+				return err
+			}
+
+			listValue.Set(reflect.Append(listValue, item.Elem()))
+		}
+		if isContinue {
+			return nil
 		}
 
-		item := reflect.New(itemType)
-		err := ctx.Item(item.Interface())
-		if err != nil {
-			return nil, err
-		}
-		return item.Interface(), nil
+		return ErrStop
 	})
 }
 
@@ -153,30 +145,37 @@ func (ctx *IterCtx) Item(item interface{}) error {
 	).GetByBytes(ctx.IDBytes(), item)
 }
 
-// ForTxnCtx ...
-type ForTxnCtx struct {
+// FromTxnCtx ...
+type FromTxnCtx struct {
 	index *Index
 	from  interface{}
 }
 
-// For ...
-func (index *Index) For(from interface{}) *ForTxnCtx {
-	return &ForTxnCtx{
+// From ...
+func (index *Index) From(from interface{}) *FromTxnCtx {
+	return &FromTxnCtx{
 		index: index,
 		from:  from,
 	}
 }
 
-// Find ...
-func (ctx *ForTxnCtx) Find(item interface{}) error {
+// Each ...
+func (ctx *FromTxnCtx) Each(fn Iteratee) error {
 	return ctx.index.list.m.store.View(func(txn kvstore.Txn) error {
-		return ctx.index.Txn(txn).For(ctx.from).Find(item)
+		return ctx.index.Txn(txn).From(ctx.from).Each(fn)
 	})
 }
 
-// Range ...
-func (ctx *ForTxnCtx) Range(items interface{}, fn RangeFilter) error {
+// Find ...
+func (ctx *FromTxnCtx) Find(item interface{}) error {
 	return ctx.index.list.m.store.View(func(txn kvstore.Txn) error {
-		return ctx.index.Txn(txn).For(ctx.from).Range(items, fn)
+		return ctx.index.Txn(txn).From(ctx.from).Find(item)
+	})
+}
+
+// Filter ...
+func (ctx *FromTxnCtx) Filter(items interface{}, fn Filter) error {
+	return ctx.index.list.m.store.View(func(txn kvstore.Txn) error {
+		return ctx.index.Txn(txn).From(ctx.from).Filter(items, fn)
 	})
 }

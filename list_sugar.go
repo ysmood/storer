@@ -45,6 +45,20 @@ func (list *List) Get(id string, item interface{}) (err error) {
 	return
 }
 
+// Set auto transaction version of ListTxn.Set
+func (list *List) Set(id string, item interface{}) error {
+	return list.Update(func(txn *ListTxn) error {
+		return txn.Set(id, item)
+	})
+}
+
+// Del auto transaction version of ListTxn.Del
+func (list *List) Del(id string) error {
+	return list.Update(func(txn *ListTxn) error {
+		return txn.Del(id)
+	})
+}
+
 // Get string version of GetByte
 func (t *ListTxn) Get(id string, item interface{}) error {
 	b, err := hex.DecodeString(id)
@@ -75,8 +89,9 @@ func (t *ListTxn) Del(id string) error {
 }
 
 // Index create index
-func (list *List) Index(id string, fn GenIndex) (index *Index, err error) {
-	err = list.Update(func(txn *ListTxn) error {
+func (list *List) Index(id string, fn GenIndex) (index *Index) {
+	err := list.Update(func(txn *ListTxn) error {
+		var err error
 		index, err = txn.IndexByBytes(id, func(ctx *GenCtx) ([]byte, error) {
 			i := fn(ctx)
 			if err, ok := i.(error); ok {
@@ -86,6 +101,9 @@ func (list *List) Index(id string, fn GenIndex) (index *Index, err error) {
 		})
 		return err
 	})
+	if err != nil {
+		panic(err)
+	}
 	return
 }
 
@@ -93,8 +111,8 @@ func (list *List) Index(id string, fn GenIndex) (index *Index, err error) {
 var ErrUniqueIndex = errors.New("index already exists")
 
 // UniqueIndex ...
-func (list *List) UniqueIndex(id string, fn GenIndex) (index *Index, err error) {
-	index, err = list.Index(id, func(ctx *GenCtx) interface{} {
+func (list *List) UniqueIndex(id string, fn GenIndex) (index *Index) {
+	index = list.Index(id, func(ctx *GenCtx) interface{} {
 		i := fn(ctx)
 		if err, ok := i.(error); ok {
 			return err
@@ -109,7 +127,7 @@ func (list *List) UniqueIndex(id string, fn GenIndex) (index *Index, err error) 
 			return nil
 		}
 
-		has, err := index.Txn(ctx.Txn).ForByBytes(encoded).Has()
+		has, err := index.Txn(ctx.Txn).FromByBytes(encoded).Has()
 		if err != nil {
 			return err
 		}

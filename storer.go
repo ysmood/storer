@@ -35,20 +35,25 @@ func New(dir string) *Store {
 	}
 }
 
+// Close close database
+func (store *Store) Close() error {
+	return store.DB.Close()
+}
+
 // ErrItemPtr when the item argument is no a pointer
 var ErrItemPtr = errors.New("must be a pointer to the item")
 
 // create a new collection
-func (store *Store) new(dataType string, item interface{}) (*Map, error) {
+func (store *Store) new(dataType string, item interface{}) *Map {
 	t, name := genTypeID(item)
 
 	if t.Kind() != reflect.Ptr {
-		return nil, ErrItemPtr
+		panic(ErrItemPtr)
 	}
 
 	bucket, err := store.bucket(dataType, name)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	return &Map{
@@ -56,25 +61,20 @@ func (store *Store) new(dataType string, item interface{}) (*Map, error) {
 		store:    store,
 		itemType: t,
 		bucket:   bucket,
-	}, nil
+	}
 }
 
 // Map create a map
-func (store *Store) Map(item interface{}) (*Map, error) {
+func (store *Store) Map(item interface{}) *Map {
 	return store.new(mapType, item)
 }
 
 // List create a list, the name must be unique among all lists
-func (store *Store) List(item interface{}) (*List, error) {
-	m, err := store.new(listType, item)
-	if err != nil {
-		return nil, err
-	}
-
+func (store *Store) List(item interface{}) *List {
 	return &List{
-		m:       m,
+		m:       store.new(listType, item),
 		indexes: map[string]*Index{},
-	}, nil
+	}
 }
 
 // The prefix of the created bucket will be like "mydb:list:users"
