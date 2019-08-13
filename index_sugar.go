@@ -46,15 +46,8 @@ var ErrNotFound = errors.New("Not found")
 // Find items can be a list or a singular
 func (ctx *FromCtx) Find(items interface{}) error {
 	listValue := reflect.ValueOf(items).Elem()
-
-	var itemType reflect.Type
 	isList := listValue.Kind() == reflect.Slice
-	if isList {
-		itemType = listValue.Type().Elem()
-	} else {
-		itemType = listValue.Type()
-	}
-
+	itemType := ctx.txnCtx.index.list.m.itemType.Elem()
 	noItem := true
 
 	err := ctx.Each(func(ctx *IterCtx) error {
@@ -62,15 +55,18 @@ func (ctx *FromCtx) Find(items interface{}) error {
 			return ErrStop
 		}
 		noItem = false
-		item := reflect.New(itemType)
-		err := ctx.Item(item.Interface())
-		if err != nil {
-			return err
-		}
 		if isList {
+			item := reflect.New(itemType)
+			err := ctx.Item(item.Interface())
+			if err != nil {
+				return err
+			}
 			listValue.Set(reflect.Append(listValue, item.Elem()))
 		} else {
-			listValue.Set(item.Elem())
+			err := ctx.Item(items)
+			if err != nil {
+				return err
+			}
 			return ErrStop
 		}
 		return nil
@@ -88,7 +84,7 @@ type Filter func(ctx *IterCtx) (match bool, isContinue bool)
 // Filter ...
 func (ctx *FromCtx) Filter(items interface{}, fn Filter) error {
 	listValue := reflect.ValueOf(items).Elem()
-	itemType := listValue.Type().Elem()
+	itemType := ctx.txnCtx.index.list.m.itemType.Elem()
 
 	return ctx.Each(func(ctx *IterCtx) error {
 		match, isContinue := fn(ctx)

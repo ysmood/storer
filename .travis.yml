@@ -4,7 +4,7 @@ go:
   - 1.12.x
 
 script:
-  - curl -L https://git.io/fjaxx | repo=ysmood/kit bin=godev sh
+  - go get github.com/ysmood/kit/cmd/godev
   - godev -l -m75
 
 after_success:
