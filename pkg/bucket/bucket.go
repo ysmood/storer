@@ -30,9 +30,8 @@ type Bucket struct {
 // New create an bucket via the name.
 // For the same database file use the same name will always get the same prefix.
 // The prefix size is dynamic, it begins with 1 byte.
-// About the max number of buckets, the minimum is 2^(4*7 - 1) - 2,
+// About the max number of buckets, for 32bit CPU it's 2^(4*7 - 1) - 2,
 // for 64bit CPU the number is 2^(8*7 - 1) - 2.
-// LRU is used to take advantage of memory cache.
 func New(txn Txn, name string) (*Bucket, error) {
 	key := append(nameMapPrefix, name...)
 
