@@ -4,16 +4,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	kit "github.com/ysmood/gokit"
+	"github.com/ysmood/kit"
 	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/bucket"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
 func TestBasic(t *testing.T) {
-	dbName := "tmp/" + kit.RandString(10)
+	dir := "tmp/" + kit.RandString(10)
+	kit.E(kit.Mkdir(dir, nil))
 
-	db := badger.New(dbName)
+	db := badger.New(dir)
 	_ = db.Do(true, func(txn kvstore.Txn) error {
 		b, _ := bucket.New(txn, "test")
 		assert.True(t, b.Valid([]byte{2}))
@@ -28,7 +29,7 @@ func TestBasic(t *testing.T) {
 	db.Close()
 
 	// open the db file again
-	_ = badger.New(dbName).Do(true, func(txn kvstore.Txn) error {
+	_ = badger.New(dir).Do(true, func(txn kvstore.Txn) error {
 		b, _ := bucket.New(txn, "test")
 		assert.True(t, b.Valid([]byte{2}))
 

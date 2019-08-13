@@ -3,8 +3,9 @@ package storer_test
 import (
 	"testing"
 
-	kit "github.com/ysmood/gokit"
 	"github.com/ysmood/storer"
+
+	"github.com/ysmood/kit"
 )
 
 func BenchmarkSet(b *testing.B) {

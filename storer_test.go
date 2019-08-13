@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	kit "github.com/ysmood/gokit"
 	"github.com/ysmood/storer"
 	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/kit"
 )
 
 type User struct {

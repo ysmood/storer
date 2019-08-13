@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	kit "github.com/ysmood/gokit"
+	"github.com/ysmood/kit"
 	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
 func do(dir string, fn func(db kvstore.Store)) {
-	_ = kit.Mkdir(dir, nil)
+	kit.E(kit.Mkdir(dir, nil))
 
 	db := badger.New(dir)
 
