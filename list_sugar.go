@@ -3,6 +3,7 @@ package storer
 import (
 	"encoding/hex"
 	"errors"
+	"reflect"
 
 	"github.com/nochso/bytesort"
 	"github.com/ysmood/storer/pkg/kvstore"
@@ -88,12 +89,20 @@ func (t *ListTxn) Del(id string) error {
 	return t.DelByBytes(b)
 }
 
-// Index create index
-func (list *List) Index(id string, fn GenIndex) (index *Index) {
+// Index create index, fn can be GenIndex
+func (list *List) Index(id string, fn interface{}) (index *Index) {
+	cb, ok := fn.(func(ctx *GenCtx) interface{})
+	if !ok {
+		cb = func(ctx *GenCtx) interface{} {
+			v := reflect.ValueOf(fn)
+			return v.Call([]reflect.Value{reflect.ValueOf(ctx.Item)})[0].Interface()
+		}
+	}
+
 	err := list.Update(func(txn *ListTxn) error {
 		var err error
 		index, err = txn.IndexByBytes(id, func(ctx *GenCtx) ([]byte, error) {
-			i := fn(ctx)
+			i := cb(ctx)
 			if err, ok := i.(error); ok {
 				return nil, err
 			}

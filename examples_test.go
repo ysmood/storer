@@ -45,8 +45,8 @@ func ExampleStore_indexing() {
 	users := store.List(&User{})
 
 	// setup index
-	index := users.Index("level", func(ctx *storer.GenCtx) interface{} {
-		return ctx.Item.(*User).Level
+	index := users.Index("level", func(u *User) interface{} {
+		return u.Level
 	})
 
 	// add test data
