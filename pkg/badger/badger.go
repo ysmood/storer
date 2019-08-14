@@ -6,32 +6,30 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger"
+	"github.com/ysmood/kit/pkg/utils"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
 // Badger adapter for badger
 type Badger struct {
-	kvstore.Store
-
 	db *badger.DB
 }
+
+var _ kvstore.Store = &Badger{}
 
 // New a helper to create a badger adapter instance.
 // If the dir is empty a tmp dir will be created.
 func New(dir string) *Badger {
 	if dir == "" {
 		dir = fmt.Sprintf("tmp/%d", time.Now().UnixNano())
-		err := os.MkdirAll(dir, 0775)
-		if err != nil {
-			panic(err)
-		}
 	}
+
+	err := os.MkdirAll(dir, 0775)
+	utils.E(err)
 
 	dbOpts := badger.DefaultOptions(dir).WithLogger(nil)
 	db, err := badger.Open(dbOpts)
-	if err != nil {
-		panic(err)
-	}
+	utils.E(err)
 
 	return NewByDB(db)
 }
@@ -68,10 +66,10 @@ func (b *Badger) Close() error {
 
 // Txn ...
 type Txn struct {
-	kvstore.Txn
-
 	txn *badger.Txn
 }
+
+var _ kvstore.Txn = &Txn{}
 
 // Get ...
 func (t *Txn) Get(key []byte) ([]byte, error) {
@@ -82,11 +80,7 @@ func (t *Txn) Get(key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	val, err := item.ValueCopy(nil)
-	if err != nil {
-		return nil, err
-	}
-	return val, nil
+	return item.ValueCopy(nil)
 }
 
 // Set ...
@@ -112,9 +106,7 @@ func (t *Txn) Do(reverse bool, from []byte, fn kvstore.Iteratee) error {
 	defer it.Close()
 
 	for it.Seek(from); it.Valid(); it.Next() {
-		err := fn(&IterCtx{
-			iter: it,
-		})
+		err := fn(it.Item().Key())
 		if err == kvstore.ErrStop {
 			return nil
 		}
@@ -124,21 +116,4 @@ func (t *Txn) Do(reverse bool, from []byte, fn kvstore.Iteratee) error {
 	}
 
 	return nil
-}
-
-// IterCtx ...
-type IterCtx struct {
-	kvstore.IterCtx
-
-	iter *badger.Iterator
-}
-
-// Seek ...
-func (i *IterCtx) Seek(key []byte) {
-	i.iter.Seek(key)
-}
-
-// Key ...
-func (i *IterCtx) Key() []byte {
-	return i.iter.Item().Key()
 }

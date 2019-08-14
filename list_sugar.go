@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/nochso/bytesort"
+	"github.com/ysmood/kit/pkg/utils"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
@@ -110,9 +111,7 @@ func (list *List) Index(id string, fn interface{}) (index *Index) {
 		})
 		return err
 	})
-	if err != nil {
-		panic(err)
-	}
+	utils.E(err)
 	return
 }
 
@@ -127,23 +126,18 @@ func (list *List) UniqueIndex(id string, fn GenIndex) (index *Index) {
 			return err
 		}
 
-		encoded, err := bytesort.Encode(i)
-		if err != nil {
-			return err
-		}
-
 		if ctx.Action != IndexCreate {
-			return nil
+			return i
 		}
 
-		has, err := index.Txn(ctx.Txn).FromByBytes(encoded).Has()
+		has, err := index.Txn(ctx.Txn).From(i).Has()
 		if err != nil {
 			return err
 		}
 		if has {
 			return ErrUniqueIndex
 		}
-		return encoded
+		return i
 	})
 	return
 }

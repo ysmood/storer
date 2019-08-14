@@ -2,14 +2,10 @@ package storer
 
 import (
 	"crypto/rand"
-	"errors"
 	"reflect"
 
 	"github.com/vmihailenco/msgpack"
 )
-
-// ErrItemType ...
-var ErrItemType = errors.New("wrong item type")
 
 const listType = "list"
 const mapType = "map"
@@ -28,8 +24,8 @@ type UniqueType interface {
 
 // Encoding custom encoding handler, by default msgpack is used
 type Encoding interface {
-	Encode(interface{}) ([]byte, error)
-	Decode([]byte, interface{}) error
+	Encode() ([]byte, error)
+	Decode([]byte) error
 }
 
 func id(val interface{}) []byte {
@@ -44,7 +40,7 @@ func id(val interface{}) []byte {
 func Encode(item interface{}) ([]byte, error) {
 	encoding, ok := item.(Encoding)
 	if ok {
-		return encoding.Encode(item)
+		return encoding.Encode()
 	}
 
 	return msgpack.Marshal(item)
@@ -54,7 +50,7 @@ func Encode(item interface{}) ([]byte, error) {
 func Decode(data []byte, item interface{}) error {
 	encoding, ok := item.(Encoding)
 	if ok {
-		return encoding.Decode(data, item)
+		return encoding.Decode(data)
 	}
 
 	return msgpack.Unmarshal(data, item)

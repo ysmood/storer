@@ -13,6 +13,9 @@ import (
 var counterPrefix = byframe.EncodeHeader(0)
 var nameMapPrefix = byframe.EncodeHeader(1)
 
+// ErrKeyNotFound ...
+var ErrKeyNotFound = kvstore.ErrKeyNotFound
+
 // Txn the transaction interface
 type Txn interface {
 	// Get when err is ErrKeyNotFound the key doesn't exist
@@ -37,13 +40,14 @@ func New(txn Txn, name string) (*Bucket, error) {
 
 	prefix, err := txn.Get(key)
 	if err == nil {
-		return &Bucket{prefix: prefix}, err
-	} else if err != kvstore.ErrKeyNotFound {
+		return &Bucket{prefix: prefix}, nil
+	} else if err != ErrKeyNotFound {
 		return nil, err
 	}
 
 	countData, err := txn.Get(counterPrefix)
-	if err == kvstore.ErrKeyNotFound {
+
+	if err == ErrKeyNotFound {
 		countData = byframe.EncodeHeader(1)
 	} else if err != nil {
 		return nil, err
@@ -67,12 +71,12 @@ func New(txn Txn, name string) (*Bucket, error) {
 
 // Set set key and value to the store with prefix
 func (b *Bucket) Set(txn Txn, key, value []byte) error {
-	return txn.Set(append(b.prefix, key...), value)
+	return txn.Set(b.Prefix(key), value)
 }
 
 // Get get value by the key from the store with prefix
 func (b *Bucket) Get(txn Txn, key []byte) ([]byte, error) {
-	return txn.Get(append(b.prefix, key...))
+	return txn.Get(b.Prefix(key))
 }
 
 // Prefix prefix key

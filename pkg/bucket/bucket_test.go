@@ -1,6 +1,7 @@
 package bucket_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,8 @@ func TestBasic(t *testing.T) {
 
 		b, _ = bucket.New(txn, "test")
 		assert.True(t, b.Valid([]byte{2}))
+
+		assert.Equal(t, 1, b.Len())
 
 		return nil
 	})
@@ -45,4 +48,45 @@ func TestBasic(t *testing.T) {
 		assert.Equal(t, []byte("value"), val)
 		return nil
 	})
+}
+
+type ErrTxn struct {
+	bucket.Txn
+	count int
+	errs  []error
+}
+
+var errTxn = errors.New("err")
+
+func (txn *ErrTxn) Get(key []byte) (value []byte, err error) {
+	err = txn.errs[txn.count]
+	txn.count++
+	return nil, err
+}
+
+func (txn *ErrTxn) Set(key, value []byte) error {
+	err := txn.errs[txn.count]
+	txn.count++
+	return err
+}
+
+func TestErr(t *testing.T) {
+	txn := &ErrTxn{errs: []error{errTxn}}
+	_, err := bucket.New(txn, "test")
+	assert.Equal(t, errTxn, err)
+
+	txn = &ErrTxn{errs: []error{bucket.ErrKeyNotFound, errTxn}}
+	_, err = bucket.New(txn, "test")
+	assert.Equal(t, errTxn, err)
+
+	txn = &ErrTxn{errs: []error{bucket.ErrKeyNotFound, nil, errTxn}}
+	_, err = bucket.New(txn, "test")
+	assert.Equal(t, errTxn, err)
+
+	txn = &ErrTxn{errs: []error{bucket.ErrKeyNotFound, nil, nil, errTxn}}
+	_, err = bucket.New(txn, "test")
+	assert.Equal(t, errTxn, err)
+
+	b := bucket.Bucket{}
+	assert.False(t, b.Valid([]byte{129}))
 }

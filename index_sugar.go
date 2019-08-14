@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/nochso/bytesort"
+	"github.com/ysmood/kit/pkg/utils"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
@@ -19,9 +20,7 @@ func (txnCtx *IndexTxn) From(from interface{}) *FromCtx {
 	}
 
 	b, err := bytesort.Encode(from)
-	if err != nil {
-		panic(err)
-	}
+	utils.E(err)
 	return txnCtx.FromByBytes(b)
 }
 
@@ -106,36 +105,15 @@ func (ctx *FromCtx) Filter(items interface{}, fn Filter) error {
 	})
 }
 
-// ID ...
-func (ctx *IterCtx) ID() string {
-	return string(ctx.IDBytes())
-}
-
-// Index ...
-func (ctx *IterCtx) Index() string {
-	return string(ctx.IndexBytes())
-}
-
 // Compare ...
 func (ctx *IterCtx) Compare(v interface{}) int {
 	b, err := bytesort.Encode(v)
-	if err != nil {
-		panic(err)
-	}
+	utils.E(err)
 	return bytes.Compare(ctx.IndexBytes(), b)
-}
-
-// Seek ...
-func (ctx *IterCtx) Seek(from string) {
-	ctx.SeekBytes([]byte(from))
 }
 
 // Item ...
 func (ctx *IterCtx) Item(item interface{}) error {
-	if ctx.forCtx.txnCtx.index.list.m.itemType != reflect.TypeOf(item) {
-		return ErrItemType
-	}
-
 	return ctx.forCtx.txnCtx.index.list.Txn(
 		ctx.forCtx.txnCtx.txn,
 	).GetByBytes(ctx.IDBytes(), item)

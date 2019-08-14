@@ -55,10 +55,6 @@ func (t *ListTxn) GetByBytes(id []byte, item interface{}) error {
 
 // SetByBytes update an existing item
 func (t *ListTxn) SetByBytes(id []byte, item interface{}) error {
-	if t.list.m.itemType != reflect.TypeOf(item) {
-		return ErrItemType
-	}
-
 	oldItem := reflect.New(t.list.m.itemType.Elem())
 
 	// if the item doesn't exist return error
@@ -84,14 +80,14 @@ func (t *ListTxn) SetByBytes(id []byte, item interface{}) error {
 
 // DelByBytes remove a item from the list
 func (t *ListTxn) DelByBytes(id []byte) error {
-	item := reflect.New(t.list.m.itemType)
+	item := reflect.New(t.list.m.itemType.Elem())
 	err := t.GetByBytes(id, item.Interface())
 	if err != nil {
 		return err
 	}
 
 	for _, index := range t.list.indexes {
-		err := index.del(t.mapTxn.txn, id, item.Elem().Interface())
+		err := index.del(t.mapTxn.txn, id, item.Interface())
 		if err != nil {
 			return err
 		}

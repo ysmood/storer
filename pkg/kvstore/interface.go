@@ -4,8 +4,7 @@ import "errors"
 
 // The minimum interface to create an efficient indexable database with a key-value store.
 // When any reduce for the interface design will dramatically impact the performance we can think the
-// design is stable. Such as if we remove the Seek interface, we can't skip some keys efficiently
-// which means the Seek inferface should remain.
+// design is stable.
 //
 // The reason to use callback style is because some database may use resources that need to be cleaned up
 // after certain operations, such as the lock to avoid race condition. Callback can abstract them away.
@@ -45,13 +44,4 @@ type Txn interface {
 var ErrStop = errors.New("stop iteration")
 
 // Iteratee ...
-type Iteratee func(ctx IterCtx) error
-
-// IterCtx ...
-type IterCtx interface {
-	// Seek move the cursor to the next item with smallest key greater than the provided key
-	Seek([]byte)
-
-	// Key return the key value of current item
-	Key() []byte
-}
+type Iteratee func(key []byte) error

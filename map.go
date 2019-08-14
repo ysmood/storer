@@ -1,11 +1,15 @@
 package storer
 
 import (
+	"errors"
 	"reflect"
 
 	"github.com/ysmood/storer/pkg/bucket"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
+
+// ErrItemType ...
+var ErrItemType = errors.New("wrong item type")
 
 // Map the base type of the system
 type Map struct {
@@ -45,6 +49,10 @@ func (t *MapTxn) SetByBytes(id []byte, item interface{}) error {
 
 // GetByBytes get item from the map
 func (t *MapTxn) GetByBytes(id []byte, item interface{}) error {
+	if t.m.itemType != reflect.TypeOf(item) {
+		return ErrItemType
+	}
+
 	raw, err := t.txn.Get(t.m.bucket.Prefix(id))
 	if err != nil {
 		return err

@@ -157,16 +157,16 @@ func (ctx *FromCtx) Reverse() *FromCtx {
 func (ctx *FromCtx) Each(fn Iteratee) error {
 	prefix := ctx.txnCtx.index.bucket.Prefix(byframe.Encode(ctx.from))
 
-	return ctx.txnCtx.txn.Do(ctx.reverse, prefix, func(itCtx kvstore.IterCtx) error {
+	return ctx.txnCtx.txn.Do(ctx.reverse, prefix, func(key []byte) error {
 		// if the key doesn't match the bucket prefix, it means
 		// the bucket range is ended, the iteration should stop
-		if !ctx.txnCtx.index.bucket.Valid(itCtx.Key()) {
+		if !ctx.txnCtx.index.bucket.Valid(key) {
 			return ErrStop
 		}
 
 		return fn(&IterCtx{
 			forCtx: ctx,
-			it:     itCtx,
+			key:    key,
 		})
 	})
 }
@@ -174,7 +174,7 @@ func (ctx *FromCtx) Each(fn Iteratee) error {
 // IterCtx ...
 type IterCtx struct {
 	forCtx *FromCtx
-	it     kvstore.IterCtx
+	key    []byte
 }
 
 // ErrStop ...
@@ -186,16 +186,10 @@ type Iteratee func(*IterCtx) error
 
 // IDBytes ...
 func (ctx *IterCtx) IDBytes() []byte {
-	return ctx.forCtx.txnCtx.index.extractItemID(ctx.it.Key())
+	return ctx.forCtx.txnCtx.index.extractItemID(ctx.key)
 }
 
 // IndexBytes ...
 func (ctx *IterCtx) IndexBytes() []byte {
-	return ctx.forCtx.txnCtx.index.extractIndex(ctx.it.Key())
-}
-
-// SeekBytes ...
-func (ctx *IterCtx) SeekBytes(from []byte) {
-	key := ctx.forCtx.txnCtx.index.bucket.Prefix(from)
-	ctx.it.Seek(key)
+	return ctx.forCtx.txnCtx.index.extractIndex(ctx.key)
 }

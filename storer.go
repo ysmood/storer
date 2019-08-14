@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/ysmood/kit/pkg/utils"
 	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/bucket"
 	"github.com/ysmood/storer/pkg/kvstore"
@@ -52,9 +53,7 @@ func (store *Store) new(dataType string, item interface{}) *Map {
 	}
 
 	bucket, err := store.bucket(dataType, name)
-	if err != nil {
-		panic(err)
-	}
+	utils.E(err)
 
 	return &Map{
 		name:     name,
