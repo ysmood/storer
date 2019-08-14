@@ -9,6 +9,8 @@ import (
 	"github.com/ysmood/kit"
 )
 
+const rounds = 10000
+
 func BenchmarkBadgerSet(b *testing.B) {
 	store := storer.New("")
 
@@ -38,6 +40,22 @@ func BenchmarkSet(b *testing.B) {
 	}
 }
 
+func BenchmarkSetWithIndex(b *testing.B) {
+	store := storer.New("")
+
+	users := store.List(&User{})
+	_ = users.Index("level", func(u *User) interface{} {
+		return u.Level
+	})
+
+	user := &User{Name: "jack", Level: 1}
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		kit.E(users.Add(user))
+	}
+}
 func BenchmarkBadgerGet(b *testing.B) {
 	store := storer.New("")
 
@@ -45,7 +63,7 @@ func BenchmarkBadgerGet(b *testing.B) {
 	kit.E(err)
 
 	var id []byte
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < rounds; i++ {
 		var err error
 		kit.E(store.DB.Do(true, func(txn kvstore.Txn) error {
 			id = kit.RandBytes(12)
@@ -72,7 +90,7 @@ func BenchmarkGet(b *testing.B) {
 	user := &User{Name: "jack", Level: 1}
 
 	var id string
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < rounds; i++ {
 		var err error
 		id, err = users.Add(user)
 		kit.E(err)
@@ -85,13 +103,41 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
+func BenchmarkBadgerPrefixGet(b *testing.B) {
+	store := storer.New("")
+
+	data, err := storer.Encode(User{Name: "jack", Level: 1})
+	kit.E(err)
+
+	var id []byte
+	for i := 0; i < rounds; i++ {
+		var err error
+		kit.E(store.DB.Do(true, func(txn kvstore.Txn) error {
+			id = kit.RandBytes(12)
+			return txn.Set(id, data)
+		}))
+		kit.E(err)
+	}
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		kit.E(store.DB.Do(false, func(txn kvstore.Txn) error {
+			return txn.Do(false, id, func(key []byte) error {
+				_, _ = txn.Get(id)
+				return storer.ErrStop
+			})
+		}))
+	}
+}
+
 func BenchmarkGetByIndex(b *testing.B) {
 	users := store.List(&User{})
-	index := users.Index("level", func(ctx *storer.GenCtx) interface{} {
-		return ctx.Item.(*User).Level
+	index := users.Index("level", func(u *User) interface{} {
+		return u.Level
 	})
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < rounds; i++ {
 		kit.E(users.Add(&User{
 			Name:  "jack",
 			Level: i,
@@ -103,17 +149,17 @@ func BenchmarkGetByIndex(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		kit.E(index.From(9999).Find(&item))
+		kit.E(index.From(rounds - 1).Find(&item))
 	}
 }
 
 func BenchmarkFilter(b *testing.B) {
 	users := store.List(&User{})
-	index := users.Index("level", func(ctx *storer.GenCtx) interface{} {
-		return ctx.Item.(*User).Level
+	index := users.Index("level", func(u *User) interface{} {
+		return u.Level
 	})
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < rounds; i++ {
 		kit.E(users.Add(&User{
 			Name:  "jack",
 			Level: i,

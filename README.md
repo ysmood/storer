@@ -27,30 +27,32 @@ Check the [example file](examples_test.go).
 
 This lib only added 3 layers above the underlying backend:
 
-- minimum key prefixing, normally one byte per key, the algorithm is [here](github.com/ysmood/byframe)
+- minimum key prefixing, normally one byte per key, the algorithm is [here](https://github.com/ysmood/byframe)
 - minimum data encoding, the encoding used for benchmarking is [msgpack](https://github.com/vmihailenco/msgpack)
 - index items with an extra record, so need at least two gets to retrieve an item via its index
 
 So theoretically, the performance should be nearly the same with bare get and set when data is small.
 
-Run `go test -bench=.`, here's a sample output:
+Run `go test -bench Benchmark -benchmem`, here's a sample output:
 
 ```txt
-goos: darwin
-goarch: amd64
-pkg: github.com/ysmood/storer
-BenchmarkBadgerSet-6           20000         72311 ns/op
-BenchmarkSet-6                 20000         75317 ns/op
-BenchmarkBadgerGet-6         1000000          1545 ns/op
-BenchmarkGet-6               1000000          2389 ns/op
-BenchmarkGetByIndex-6         300000          4196 ns/op
-BenchmarkFilter-6              50000         23965 ns/op
-PASS
-ok      github.com/ysmood/storer    24.046s
+BenchmarkBadgerSet-6         	   20000	     71123 ns/op	    2523 B/op	      81 allocs/op
+BenchmarkSet-6               	   20000	     71838 ns/op	    2707 B/op	      92 allocs/op
+BenchmarkSetWithIndex-6      	   20000	     75477 ns/op	    3270 B/op	     116 allocs/op
+BenchmarkBadgerGet-6         	 1000000	      1269 ns/op	     528 B/op	      13 allocs/op
+BenchmarkGet-6               	 1000000	      1579 ns/op	     608 B/op	      18 allocs/op
+BenchmarkBadgerPrefixGet-6   	  500000	      3584 ns/op	    1552 B/op	      34 allocs/op
+BenchmarkGetByIndex-6        	  500000	      3696 ns/op	    1536 B/op	      41 allocs/op
+BenchmarkFilter-6            	  100000	     18356 ns/op	    6720 B/op	     153 allocs/op
 ```
 
-As you can see, the real world benchmark reflects the theory,
-GetByIndex is about 2 times slower than the direct Get.
+The ones named with badger are using badger direct to manipulate data, the ones after each badger benchmark
+are the treatment group.
+
+The benchmark shows badger's prefix-get has huge overhead over direct-get which doesn't make sense to me yet.
+
+Overall the result is as expected, it shows the overhead of the key prefixing and data encoding decoding
+can be ignored when compared with disk IO overhead.
 
 ## Development
 

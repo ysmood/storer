@@ -69,12 +69,7 @@ func (index *Index) add(txn kvstore.Txn, itemID []byte, item interface{}) error 
 		return err
 	}
 
-	err = txn.Set(index.id(i, itemID), nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return txn.Set(index.id(i, itemID), nil)
 }
 
 func (index *Index) update(txn kvstore.Txn, itemID []byte, old, new interface{}) error {
@@ -96,12 +91,7 @@ func (index *Index) update(txn kvstore.Txn, itemID []byte, old, new interface{})
 		return err
 	}
 
-	err = txn.Set(index.id(newIndex, itemID), nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return txn.Set(index.id(newIndex, itemID), nil)
 }
 
 func (index *Index) del(txn kvstore.Txn, itemID []byte, item interface{}) error {
@@ -110,12 +100,7 @@ func (index *Index) del(txn kvstore.Txn, itemID []byte, item interface{}) error 
 		return err
 	}
 
-	err = txn.Delete(index.id(i, itemID))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return txn.Delete(index.id(i, itemID))
 }
 
 // IndexTxn ...
