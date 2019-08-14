@@ -71,7 +71,7 @@ func (store *Store) Map(item interface{}) *Map {
 // List create a list, the name must be unique among all lists
 func (store *Store) List(item interface{}) *List {
 	return &List{
-		m:       store.new(listType, item),
+		dict:    store.new(listType, item),
 		indexes: map[string]*Index{},
 	}
 }

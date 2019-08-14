@@ -12,21 +12,21 @@ import (
 
 // Update ...
 func (list *List) Update(fn func(txn *ListTxn) error) error {
-	return list.m.store.Update(func(txn kvstore.Txn) error {
+	return list.dict.store.Update(func(txn kvstore.Txn) error {
 		return fn(list.Txn(txn))
 	})
 }
 
 // View ...
 func (list *List) View(fn func(txn *ListTxn) error) error {
-	return list.m.store.View(func(txn kvstore.Txn) error {
+	return list.dict.store.View(func(txn kvstore.Txn) error {
 		return fn(list.Txn(txn))
 	})
 }
 
 // Add string version of AddByte
-func (t *ListTxn) Add(item interface{}) (string, error) {
-	id, err := t.AddByBytes(item)
+func (listTxn *ListTxn) Add(item interface{}) (string, error) {
+	id, err := listTxn.AddByBytes(item)
 	return hex.EncodeToString(id), err
 }
 
@@ -62,32 +62,32 @@ func (list *List) Del(id string) error {
 }
 
 // Get string version of GetByte
-func (t *ListTxn) Get(id string, item interface{}) error {
+func (listTxn *ListTxn) Get(id string, item interface{}) error {
 	b, err := hex.DecodeString(id)
 	if err != nil {
 		return err
 	}
-	return t.GetByBytes(b, item)
+	return listTxn.GetByBytes(b, item)
 }
 
 // Set string version of SetByte
-func (t *ListTxn) Set(id string, item interface{}) error {
+func (listTxn *ListTxn) Set(id string, item interface{}) error {
 	b, err := hex.DecodeString(id)
 	if err != nil {
 		return err
 	}
 
-	return t.SetByBytes(b, item)
+	return listTxn.SetByBytes(b, item)
 }
 
 // Del string version of DelByte
-func (t *ListTxn) Del(id string) error {
+func (listTxn *ListTxn) Del(id string) error {
 	b, err := hex.DecodeString(id)
 	if err != nil {
 		return err
 	}
 
-	return t.DelByBytes(b)
+	return listTxn.DelByBytes(b)
 }
 
 // Index create index, fn can be GenIndex

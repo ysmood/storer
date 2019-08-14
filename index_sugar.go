@@ -46,7 +46,7 @@ var ErrNotFound = errors.New("Not found")
 func (ctx *FromCtx) Find(items interface{}) error {
 	listValue := reflect.ValueOf(items).Elem()
 	isList := listValue.Kind() == reflect.Slice
-	itemType := ctx.txnCtx.index.list.m.itemType.Elem()
+	itemType := ctx.txnCtx.index.list.dict.itemType.Elem()
 	noItem := true
 
 	err := ctx.Each(func(ctx *IterCtx) error {
@@ -83,7 +83,7 @@ type Filter func(ctx *IterCtx) (match bool, isContinue bool)
 // Filter ...
 func (ctx *FromCtx) Filter(items interface{}, fn Filter) error {
 	listValue := reflect.ValueOf(items).Elem()
-	itemType := ctx.txnCtx.index.list.m.itemType.Elem()
+	itemType := ctx.txnCtx.index.list.dict.itemType.Elem()
 
 	return ctx.Each(func(ctx *IterCtx) error {
 		match, isContinue := fn(ctx)
@@ -135,21 +135,21 @@ func (index *Index) From(from interface{}) *FromTxnCtx {
 
 // Each ...
 func (ctx *FromTxnCtx) Each(fn Iteratee) error {
-	return ctx.index.list.m.store.View(func(txn kvstore.Txn) error {
+	return ctx.index.list.dict.store.View(func(txn kvstore.Txn) error {
 		return ctx.index.Txn(txn).From(ctx.from).Each(fn)
 	})
 }
 
 // Find ...
 func (ctx *FromTxnCtx) Find(item interface{}) error {
-	return ctx.index.list.m.store.View(func(txn kvstore.Txn) error {
+	return ctx.index.list.dict.store.View(func(txn kvstore.Txn) error {
 		return ctx.index.Txn(txn).From(ctx.from).Find(item)
 	})
 }
 
 // Filter ...
 func (ctx *FromTxnCtx) Filter(items interface{}, fn Filter) error {
-	return ctx.index.list.m.store.View(func(txn kvstore.Txn) error {
+	return ctx.index.list.dict.store.View(func(txn kvstore.Txn) error {
 		return ctx.index.Txn(txn).From(ctx.from).Filter(items, fn)
 	})
 }

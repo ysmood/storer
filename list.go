@@ -12,7 +12,7 @@ var ErrIndexExists = errors.New("index already exists")
 
 // List ...
 type List struct {
-	m       *Map
+	dict    *Map
 	indexes map[string]*Index
 }
 
@@ -26,20 +26,20 @@ type ListTxn struct {
 func (list *List) Txn(txn kvstore.Txn) *ListTxn {
 	return &ListTxn{
 		list:   list,
-		mapTxn: list.m.Txn(txn),
+		mapTxn: list.dict.Txn(txn),
 	}
 }
 
 // AddByBytes add an item to the list, return the id and error
-func (t *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
+func (listTxn *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
 	id := id(item)
-	err := t.mapTxn.SetByBytes(id, item)
+	err := listTxn.mapTxn.SetByBytes(id, item)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, index := range t.list.indexes {
-		err = index.add(t.mapTxn.txn, id, item)
+	for _, index := range listTxn.list.indexes {
+		err = index.add(listTxn.mapTxn.txn, id, item)
 		if err != nil {
 			return nil, err
 		}
@@ -49,27 +49,27 @@ func (t *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
 }
 
 // GetByBytes get item from the list
-func (t *ListTxn) GetByBytes(id []byte, item interface{}) error {
-	return t.mapTxn.GetByBytes(id, item)
+func (listTxn *ListTxn) GetByBytes(id []byte, item interface{}) error {
+	return listTxn.mapTxn.GetByBytes(id, item)
 }
 
 // SetByBytes update an existing item
-func (t *ListTxn) SetByBytes(id []byte, item interface{}) error {
-	oldItem := reflect.New(t.list.m.itemType.Elem())
+func (listTxn *ListTxn) SetByBytes(id []byte, item interface{}) error {
+	oldItem := reflect.New(listTxn.list.dict.itemType.Elem())
 
 	// if the item doesn't exist return error
-	err := t.GetByBytes(id, oldItem.Interface())
+	err := listTxn.GetByBytes(id, oldItem.Interface())
 	if err != nil {
 		return err
 	}
 
-	err = t.mapTxn.SetByBytes(id, item)
+	err = listTxn.mapTxn.SetByBytes(id, item)
 	if err != nil {
 		return err
 	}
 
-	for _, index := range t.list.indexes {
-		err = index.update(t.mapTxn.txn, id, oldItem.Interface(), item)
+	for _, index := range listTxn.list.indexes {
+		err = index.update(listTxn.mapTxn.txn, id, oldItem.Interface(), item)
 		if err != nil {
 			return err
 		}
@@ -79,43 +79,43 @@ func (t *ListTxn) SetByBytes(id []byte, item interface{}) error {
 }
 
 // DelByBytes remove a item from the list
-func (t *ListTxn) DelByBytes(id []byte) error {
-	item := reflect.New(t.list.m.itemType.Elem())
-	err := t.GetByBytes(id, item.Interface())
+func (listTxn *ListTxn) DelByBytes(id []byte) error {
+	item := reflect.New(listTxn.list.dict.itemType.Elem())
+	err := listTxn.GetByBytes(id, item.Interface())
 	if err != nil {
 		return err
 	}
 
-	for _, index := range t.list.indexes {
-		err := index.del(t.mapTxn.txn, id, item.Interface())
+	for _, index := range listTxn.list.indexes {
+		err := index.del(listTxn.mapTxn.txn, id, item.Interface())
 		if err != nil {
 			return err
 		}
 	}
 
-	return t.mapTxn.DelByBytes(id)
+	return listTxn.mapTxn.DelByBytes(id)
 }
 
 // IndexByBytes byte version of Index
-func (t *ListTxn) IndexByBytes(name string, fn GenIndexBytes) (*Index, error) {
-	bucket, err := t.list.m.store.bucket(indexType, t.list.m.name, name)
+func (listTxn *ListTxn) IndexByBytes(name string, fn GenIndexBytes) (*Index, error) {
+	bucket, err := listTxn.list.dict.store.bucket(indexType, listTxn.list.dict.name, name)
 	if err != nil {
 		return nil, err
 	}
 
-	_, has := t.list.indexes[name]
+	_, has := listTxn.list.indexes[name]
 	if has {
 		return nil, ErrIndexExists
 	}
 
 	index := &Index{
 		name:     name,
-		list:     t.list,
+		list:     listTxn.list,
 		bucket:   bucket,
 		genIndex: fn,
 	}
 
-	t.list.indexes[name] = index
+	listTxn.list.indexes[name] = index
 
 	return index, nil
 }
