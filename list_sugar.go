@@ -90,8 +90,7 @@ func (listTxn *ListTxn) Del(id string) error {
 	return listTxn.DelByBytes(b)
 }
 
-// Index create index, fn can be GenIndex
-func (list *List) Index(id string, fn interface{}) (index *Index) {
+func (list *List) indexCallback(fn interface{}) GenIndex {
 	cb, ok := fn.(func(ctx *GenCtx) interface{})
 	if !ok {
 		cb = func(ctx *GenCtx) interface{} {
@@ -100,6 +99,12 @@ func (list *List) Index(id string, fn interface{}) (index *Index) {
 			)[0].Interface()
 		}
 	}
+	return cb
+}
+
+// Index create index, fn can be GenIndex
+func (list *List) Index(id string, fn interface{}) (index *Index) {
+	cb := list.indexCallback(fn)
 
 	err := list.Update(func(txn *ListTxn) error {
 		var err error
@@ -120,9 +125,11 @@ func (list *List) Index(id string, fn interface{}) (index *Index) {
 var ErrUniqueIndex = errors.New("index already exists")
 
 // UniqueIndex ...
-func (list *List) UniqueIndex(id string, fn GenIndex) (index *Index) {
+func (list *List) UniqueIndex(id string, fn interface{}) (index *Index) {
+	cb := list.indexCallback(fn)
+
 	index = list.Index(id, func(ctx *GenCtx) interface{} {
-		i := fn(ctx)
+		i := cb(ctx)
 		if err, ok := i.(error); ok {
 			return err
 		}
@@ -132,6 +139,7 @@ func (list *List) UniqueIndex(id string, fn GenIndex) (index *Index) {
 		}
 
 		has, err := index.Txn(ctx.Txn).From(i).Has()
+
 		if err != nil {
 			return err
 		}

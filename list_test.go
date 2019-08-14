@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/ysmood/kit"
 	"github.com/ysmood/storer"
+	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
@@ -91,4 +92,49 @@ func TestEncodeErr(t *testing.T) {
 	list := store.List(&EncodeErr{})
 	_, e := list.Add(&EncodeErr{err})
 	assert.Equal(t, err, e)
+}
+
+func TestListErrs(t *testing.T) {
+	testErr := errors.New("err")
+
+	db := &TestStore{badger: badger.New("")}
+	store := storer.Store{
+		DB: db,
+	}
+	users := store.List(&User{})
+
+	id, _ := users.Add(&User{})
+
+	db.getQueue = []interface{}{
+		[]interface{}{[]byte{}, testErr},
+	}
+
+	err := users.Set(id, &User{})
+	assert.Equal(t, testErr, err)
+
+	db.setQueue = []interface{}{testErr}
+	err = users.Set(id, &User{})
+	assert.Equal(t, testErr, err)
+
+	db.getQueue = []interface{}{
+		[]interface{}{[]byte{}, testErr},
+	}
+	err = users.Del(id)
+	assert.Equal(t, testErr, err)
+
+	db.getQueue = []interface{}{
+		[]interface{}{[]byte{}, testErr},
+	}
+	assert.PanicsWithValue(t, testErr, func() {
+		_ = users.Index("", func(u *User) interface{} {
+			return u.Level
+		})
+	})
+
+	_ = users.UniqueIndex("", func(u *User) interface{} {
+		return u.Level
+	})
+	db.doTxnQueue = []interface{}{testErr}
+	_, err = users.Add(&User{})
+	assert.Equal(t, testErr, err)
 }
