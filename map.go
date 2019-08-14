@@ -11,7 +11,8 @@ import (
 // ErrItemType ...
 var ErrItemType = errors.New("wrong item type")
 
-// Map the base type of the system
+// Map the base type of the system, such as List is based on Map
+// It provides basic set and get object to the database.
 type Map struct {
 	name     string
 	store    *Store

@@ -34,7 +34,6 @@ type Txn interface {
 	Delete(key []byte) error
 
 	// Do key only iteration.
-	// Iteratee the iter for visiting each item in the store.
 	// The order of the iteration must be byte-wise lexicographical with the key.
 	// If fn returns an ErrStop the iteration will stop without error.
 	Do(reverse bool, from []byte, fn Iteratee) error

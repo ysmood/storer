@@ -56,17 +56,17 @@ func ExampleStore_indexing() {
 	_, _ = users.Add(&User{"D", 3})
 	_, _ = users.Add(&User{"E", 5})
 
-	// get the first user who is 1
+	// get the first user whose level is 1
 	var user3 User
 	_ = index.From(3).Find(&user3)
 	fmt.Println(user3)
 
-	// get users who is 2
+	// get users whose level is 2
 	var users2 []User
 	_ = index.From(2).Find(&users2)
 	fmt.Println(len(users2))
 
-	// get users between 3 and 6
+	// get users whose level is between 3 and 6
 	var twenties []User
 	_ = index.From(3).Filter(&twenties, func(ctx *storer.IterCtx) (bool, bool) {
 		match := ctx.Compare(6) < 0
@@ -75,7 +75,7 @@ func ExampleStore_indexing() {
 	})
 	fmt.Println(twenties)
 
-	// get users whose level are odd
+	// get users whose level is odd
 	var even []User
 	_ = index.From(nil).Filter(&even, func(ctx *storer.IterCtx) (bool, bool) {
 		var user User
