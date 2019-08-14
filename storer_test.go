@@ -14,8 +14,6 @@ var store *storer.Store
 func TestMain(m *testing.M) {
 	dir := "tmp/" + kit.RandString(10)
 
-	kit.E(kit.Mkdir(dir, nil))
-
 	store = storer.New(dir)
 
 	os.Exit(m.Run())

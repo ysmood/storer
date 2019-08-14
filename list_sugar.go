@@ -95,8 +95,9 @@ func (list *List) Index(id string, fn interface{}) (index *Index) {
 	cb, ok := fn.(func(ctx *GenCtx) interface{})
 	if !ok {
 		cb = func(ctx *GenCtx) interface{} {
-			v := reflect.ValueOf(fn)
-			return v.Call([]reflect.Value{reflect.ValueOf(ctx.Item)})[0].Interface()
+			return reflect.ValueOf(fn).Call(
+				[]reflect.Value{reflect.ValueOf(ctx.Item)},
+			)[0].Interface()
 		}
 	}
 

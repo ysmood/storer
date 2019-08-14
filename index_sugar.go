@@ -77,31 +77,36 @@ func (ctx *FromCtx) Find(items interface{}) error {
 	return err
 }
 
-// Filter ...
-type Filter func(ctx *IterCtx) (match bool, isContinue bool)
+// ErrFilterReturn ...
+var ErrFilterReturn = errors.New("filter wrong return type")
 
-// Filter ...
-func (ctx *FromCtx) Filter(items interface{}, fn Filter) error {
+// Filter to stop the filter return ErrStop
+func (ctx *FromCtx) Filter(items interface{}, fn interface{}) error {
 	listValue := reflect.ValueOf(items).Elem()
 	itemType := ctx.txnCtx.index.list.dict.itemType.Elem()
 
 	return ctx.Each(func(ctx *IterCtx) error {
-		match, isContinue := fn(ctx)
+		item := reflect.New(itemType)
+		err := ctx.Item(item.Interface())
+		if err != nil {
+			return err
+		}
 
-		if match {
-			item := reflect.New(itemType)
-			err := ctx.Item(item.Interface())
-			if err != nil {
-				return err
+		res := reflect.ValueOf(fn).Call(
+			[]reflect.Value{item},
+		)[0].Interface()
+
+		switch v := res.(type) {
+		case bool:
+			if v {
+				listValue.Set(reflect.Append(listValue, item.Elem()))
 			}
-
-			listValue.Set(reflect.Append(listValue, item.Elem()))
-		}
-		if isContinue {
 			return nil
+		case error:
+			return v
+		default:
+			return ErrFilterReturn
 		}
-
-		return ErrStop
 	})
 }
 
@@ -148,7 +153,7 @@ func (ctx *FromTxnCtx) Find(item interface{}) error {
 }
 
 // Filter ...
-func (ctx *FromTxnCtx) Filter(items interface{}, fn Filter) error {
+func (ctx *FromTxnCtx) Filter(items interface{}, fn interface{}) error {
 	return ctx.index.list.dict.store.View(func(txn kvstore.Txn) error {
 		return ctx.index.Txn(txn).From(ctx.from).Filter(items, fn)
 	})

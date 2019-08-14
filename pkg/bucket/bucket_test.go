@@ -13,7 +13,6 @@ import (
 
 func TestBasic(t *testing.T) {
 	dir := "tmp/" + kit.RandString(10)
-	kit.E(kit.Mkdir(dir, nil))
 
 	db := badger.New(dir)
 	_ = db.Do(true, func(txn kvstore.Txn) error {

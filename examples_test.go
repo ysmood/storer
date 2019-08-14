@@ -68,22 +68,17 @@ func ExampleStore_indexing() {
 
 	// get users whose level is between 3 and 6
 	var twenties []User
-	_ = index.From(3).Filter(&twenties, func(ctx *storer.IterCtx) (bool, bool) {
-		match := ctx.Compare(6) < 0
-		isContinue := match
-		return match, isContinue
+	_ = index.From(3).Filter(&twenties, func(u *User) bool {
+		return u.Level < 6
 	})
 	fmt.Println(twenties)
 
 	// get users whose level is odd
-	var even []User
-	_ = index.From(nil).Filter(&even, func(ctx *storer.IterCtx) (bool, bool) {
-		var user User
-		_ = ctx.Item(&user)
-
-		return user.Level%2 == 1, true
+	var odd []User
+	_ = index.From(nil).Filter(&odd, func(u *User) bool {
+		return u.Level%2 == 1
 	})
-	fmt.Println(even)
+	fmt.Println(odd)
 
 	// Output:
 	// {D 3}

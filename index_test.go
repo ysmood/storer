@@ -53,8 +53,8 @@ func TestReverse(t *testing.T) {
 
 	_ = store.View(func(txn storer.Txn) error {
 		items := []User{}
-		kit.E(index.Txn(txn).From(3).Reverse().Filter(&items, func(_ *storer.IterCtx) (bool, bool) {
-			return true, true
+		kit.E(index.Txn(txn).From(3).Reverse().Filter(&items, func(_ *User) interface{} {
+			return true
 		}))
 		assert.Equal(t, 2, items[0].Level)
 		assert.Equal(t, 1, items[1].Level)
@@ -112,9 +112,11 @@ func TestFilter(t *testing.T) {
 	items := []User{}
 
 	// get range [-7, 2)
-	kit.E(index.From(-7).Filter(&items, func(ctx *storer.IterCtx) (bool, bool) {
-		less := ctx.Compare(2) < 0
-		return less, less
+	kit.E(index.From(-7).Filter(&items, func(u *User) interface{} {
+		if u.Level < 2 {
+			return true
+		}
+		return storer.ErrStop
 	}))
 
 	assert.Len(t, items, 9)

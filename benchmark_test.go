@@ -171,8 +171,8 @@ func BenchmarkFilter(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		kit.E(index.From(9990).Filter(&items, func(_ *storer.IterCtx) (bool, bool) {
-			return true, true
+		kit.E(index.From(9990).Filter(&items, func(_ *User) interface{} {
+			return true
 		}))
 	}
 }
