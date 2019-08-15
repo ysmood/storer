@@ -18,28 +18,28 @@ type List struct {
 
 // ListTxn ...
 type ListTxn struct {
-	list   *List
-	mapTxn *MapTxn
+	list    *List
+	dictTxn *MapTxn
 }
 
 // Txn create transaction context
 func (list *List) Txn(txn kvstore.Txn) *ListTxn {
 	return &ListTxn{
-		list:   list,
-		mapTxn: list.dict.Txn(txn),
+		list:    list,
+		dictTxn: list.dict.Txn(txn),
 	}
 }
 
 // AddByBytes add an item to the list, return the id and error
 func (listTxn *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
 	id := id(item)
-	err := listTxn.mapTxn.SetByBytes(id, item)
+	err := listTxn.dictTxn.SetByBytes(id, item)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, index := range listTxn.list.indexes {
-		err = index.add(listTxn.mapTxn.txn, id, item)
+		err = index.add(listTxn.dictTxn.txn, id, item)
 		if err != nil {
 			return nil, err
 		}
@@ -50,7 +50,7 @@ func (listTxn *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
 
 // GetByBytes get item from the list
 func (listTxn *ListTxn) GetByBytes(id []byte, item interface{}) error {
-	return listTxn.mapTxn.GetByBytes(id, item)
+	return listTxn.dictTxn.GetByBytes(id, item)
 }
 
 // SetByBytes update an existing item
@@ -63,13 +63,13 @@ func (listTxn *ListTxn) SetByBytes(id []byte, item interface{}) error {
 		return err
 	}
 
-	err = listTxn.mapTxn.SetByBytes(id, item)
+	err = listTxn.dictTxn.SetByBytes(id, item)
 	if err != nil {
 		return err
 	}
 
 	for _, index := range listTxn.list.indexes {
-		err = index.update(listTxn.mapTxn.txn, id, oldItem.Interface(), item)
+		err = index.update(listTxn.dictTxn.txn, id, oldItem.Interface(), item)
 		if err != nil {
 			return err
 		}
@@ -87,13 +87,13 @@ func (listTxn *ListTxn) DelByBytes(id []byte) error {
 	}
 
 	for _, index := range listTxn.list.indexes {
-		err := index.del(listTxn.mapTxn.txn, id, item.Interface())
+		err := index.del(listTxn.dictTxn.txn, id, item.Interface())
 		if err != nil {
 			return err
 		}
 	}
 
-	return listTxn.mapTxn.DelByBytes(id)
+	return listTxn.dictTxn.DelByBytes(id)
 }
 
 // IndexByBytes byte version of Index

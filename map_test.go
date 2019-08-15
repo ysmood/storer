@@ -8,7 +8,7 @@ import (
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
-func TestMap(t *testing.T) {
+func TestMapTxn(t *testing.T) {
 	users := store.Map(&User{})
 
 	kit.E(store.Update(func(txn kvstore.Txn) error {
@@ -30,4 +30,22 @@ func TestMap(t *testing.T) {
 
 		return nil
 	}))
+}
+
+func TestMap(t *testing.T) {
+	users := store.Map(&User{})
+
+	var jack User
+
+	key := "key"
+
+	kit.E(users.Set(key, &User{"jack", 10}))
+
+	kit.E(users.Get(key, &jack))
+
+	assert.Equal(t, 10, jack.Level)
+
+	kit.E(users.Del(key))
+
+	assert.Equal(t, kvstore.ErrKeyNotFound, users.Get(key, &jack))
 }

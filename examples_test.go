@@ -123,3 +123,27 @@ func ExampleStore_transaction() {
 
 	// Output: {2}
 }
+
+func ExampleValue() {
+	type Config struct {
+		Host string
+		Port int
+	}
+
+	store := storer.New("")
+
+	// init value of the config
+	config := store.Value(&Config{"test.com", 8080})
+
+	// update config
+	var c Config
+	_ = config.Get(&c)
+	c.Port = 80
+	_ = config.Set(&c)
+
+	// get config after restart
+	_ = config.Get(&c)
+	fmt.Println(c)
+
+	// Output: {test.com 80}
+}

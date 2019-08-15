@@ -5,11 +5,16 @@ import (
 	"reflect"
 
 	"github.com/vmihailenco/msgpack"
+	"github.com/ysmood/storer/pkg/kvstore"
 )
 
 const listType = "list"
 const mapType = "map"
+const valueType = "value"
 const indexType = "index"
+
+// ErrKeyNotFound ...
+var ErrKeyNotFound = kvstore.ErrKeyNotFound
 
 // Unique custom id generator, by default it will use a crypto safe uid
 type Unique interface {
