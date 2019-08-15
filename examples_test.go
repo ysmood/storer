@@ -3,6 +3,7 @@ package storer_test
 import (
 	"fmt"
 
+	"github.com/vmihailenco/msgpack"
 	"github.com/ysmood/storer"
 )
 
@@ -146,4 +147,46 @@ func ExampleValue() {
 	fmt.Println(c)
 
 	// Output: {test.com 80}
+}
+
+// the old type to be migrated
+type PersonOld struct {
+	Name string
+}
+
+// the new type to migrate to has an extra field NameLen
+type Person struct {
+	Name    string
+	NameLen int // the length of the name
+}
+
+var _ storer.Encoding = &Person{}
+
+// we just need to implement the Encoding interface
+func (p *Person) Decode(data []byte) error {
+	var pOld PersonOld
+	_ = msgpack.Unmarshal(data, &pOld)
+
+	p.Name = pOld.Name
+	p.NameLen = len(pOld.Name)
+	return nil
+}
+
+func (p *Person) Encode() ([]byte, error) {
+	return msgpack.Marshal(p)
+}
+
+func ExampleList_migration() {
+	store := storer.New("")
+
+	list := store.List(&Person{})
+
+	_ = store.Update(func(txn storer.Txn) error {
+		return list.Txn(txn).Each(func(id []byte) error {
+			var p Person
+			_ = list.Txn(txn).GetByBytes(id, &p)
+			_ = list.Txn(txn).SetByBytes(id, &p)
+			return nil
+		})
+	})
 }
