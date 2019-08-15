@@ -6,7 +6,7 @@ import (
 	"github.com/ysmood/storer"
 )
 
-func ExampleStore_create_read_update_delete() {
+func ExampleList_create_read_update_delete() {
 	type User struct {
 		Name  string
 		Level int
@@ -34,7 +34,7 @@ func ExampleStore_create_read_update_delete() {
 	// Output: {Jack 20}
 }
 
-func ExampleStore_indexing() {
+func ExampleList_indexing() {
 	type User struct {
 		Name  string
 		Level int
@@ -87,7 +87,7 @@ func ExampleStore_indexing() {
 	// [{A 1} {D 3} {E 5}]
 }
 
-func ExampleStore_transaction() {
+func ExampleList_transaction() {
 	type User struct {
 		Level int
 	}

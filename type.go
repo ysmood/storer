@@ -33,7 +33,8 @@ type Encoding interface {
 	Decode([]byte) error
 }
 
-func id(val interface{}) []byte {
+// GenID generate an unique id
+func GenID(val interface{}) []byte {
 	id, ok := val.(Unique)
 	if ok {
 		return id.ID()
@@ -61,8 +62,8 @@ func Decode(data []byte, item interface{}) error {
 	return msgpack.Unmarshal(data, item)
 }
 
-// generate unique id from type reflection
-func genTypeID(item interface{}) (reflect.Type, string) {
+// GenTypeID generate unique id from type reflection
+func GenTypeID(item interface{}) (reflect.Type, string) {
 	t := reflect.TypeOf(item)
 
 	if uniqueType, ok := item.(UniqueType); ok {

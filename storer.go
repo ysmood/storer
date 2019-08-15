@@ -82,7 +82,7 @@ var ErrItemPtr = errors.New("must be a pointer to the item")
 
 // create a new collection
 func (store *Store) new(dataType string, item interface{}) *Map {
-	t, name := genTypeID(item)
+	t, name := GenTypeID(item)
 
 	if t.Kind() != reflect.Ptr {
 		panic(ErrItemPtr)

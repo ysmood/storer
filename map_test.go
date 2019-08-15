@@ -32,7 +32,7 @@ func TestMapTxn(t *testing.T) {
 	}))
 }
 
-func TestMap(t *testing.T) {
+func TestMapOps(t *testing.T) {
 	users := store.Map(&User{})
 
 	var jack User

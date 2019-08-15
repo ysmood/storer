@@ -35,8 +35,8 @@ func (dict *Map) Txn(txn kvstore.Txn) *MapTxn {
 }
 
 // SetByBytes set an item to the map
-func (dict *MapTxn) SetByBytes(id []byte, item interface{}) error {
-	if dict.dict.itemType != reflect.TypeOf(item) {
+func (dictTxn *MapTxn) SetByBytes(id []byte, item interface{}) error {
+	if dictTxn.dict.itemType != reflect.TypeOf(item) {
 		return ErrItemType
 	}
 
@@ -45,16 +45,16 @@ func (dict *MapTxn) SetByBytes(id []byte, item interface{}) error {
 		return err
 	}
 
-	return dict.txn.Set(dict.dict.bucket.Prefix(id), data)
+	return dictTxn.txn.Set(dictTxn.dict.bucket.Prefix(id), data)
 }
 
 // GetByBytes get item from the map
-func (dict *MapTxn) GetByBytes(id []byte, item interface{}) error {
-	if dict.dict.itemType != reflect.TypeOf(item) {
+func (dictTxn *MapTxn) GetByBytes(id []byte, item interface{}) error {
+	if dictTxn.dict.itemType != reflect.TypeOf(item) {
 		return ErrItemType
 	}
 
-	raw, err := dict.txn.Get(dict.dict.bucket.Prefix(id))
+	raw, err := dictTxn.txn.Get(dictTxn.dict.bucket.Prefix(id))
 	if err != nil {
 		return err
 	}
@@ -62,6 +62,20 @@ func (dict *MapTxn) GetByBytes(id []byte, item interface{}) error {
 }
 
 // DelByBytes remove a item from the map
-func (dict *MapTxn) DelByBytes(id []byte) error {
-	return dict.txn.Delete(dict.dict.bucket.Prefix(id))
+func (dictTxn *MapTxn) DelByBytes(id []byte) error {
+	return dictTxn.txn.Delete(dictTxn.dict.bucket.Prefix(id))
+}
+
+// MapEach ...
+type MapEach func(id []byte) error
+
+// Each ...
+func (dictTxn *MapTxn) Each(fn MapEach) error {
+	return dictTxn.txn.Do(false, dictTxn.dict.bucket.Prefix(nil), func(key []byte) error {
+		if !dictTxn.dict.bucket.Valid(key) {
+			return ErrStop
+		}
+
+		return fn(key[dictTxn.dict.bucket.Len():])
+	})
 }

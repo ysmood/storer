@@ -32,7 +32,7 @@ func (list *List) Txn(txn kvstore.Txn) *ListTxn {
 
 // AddByBytes add an item to the list, return the id and error
 func (listTxn *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
-	id := id(item)
+	id := GenID(item)
 	err := listTxn.dictTxn.SetByBytes(id, item)
 	if err != nil {
 		return nil, err
@@ -118,4 +118,9 @@ func (listTxn *ListTxn) IndexByBytes(name string, fn GenIndexBytes) (*Index, err
 	listTxn.list.indexes[name] = index
 
 	return index, nil
+}
+
+// Each ...
+func (listTxn *ListTxn) Each(fn MapEach) error {
+	return listTxn.dictTxn.Each(fn)
 }

@@ -138,3 +138,27 @@ func TestListErrs(t *testing.T) {
 	_, err = users.Add(&User{})
 	assert.Equal(t, testErr, err)
 }
+
+func TestListEach(t *testing.T) {
+	type extra struct{}
+	users := store.List(&User{})
+	extraList := store.List(&extra{})
+
+	_, _ = users.Add(&User{"jack", 1})
+	_, _ = users.Add(&User{"jack", 2})
+
+	_, _ = extraList.Add(&extra{})
+	_, _ = extraList.Add(&extra{})
+
+	res := []User{}
+	_ = store.View(func(txn storer.Txn) error {
+		return users.Txn(txn).Each(func(k []byte) error {
+			var u User
+			_ = users.Txn(txn).GetByBytes(k, &u)
+			res = append(res, u)
+			return nil
+		})
+	})
+
+	assert.Equal(t, []User{User{"jack", 1}, User{"jack", 2}}, res)
+}
