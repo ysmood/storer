@@ -8,15 +8,13 @@ On-disk high-performance lightweight object storage for golang. This project is 
 the minimum interface to create an efficient indexable database with a key-value store.
 It's a proof of concept for [pkg/kvstore](pkg/kvstore/interface.go).
 
-With this lib, it will be pretty easy to build SQL like DSL on top of it.
+It should be pretty easy to build low overhead random graph algorithm or SQL like DSL on top of it.
 
 ## Features
 
-- No table, no schema, no query language, just golang
 - Manipulate records like normal list items in golang
-- Query records with `map` and `reduce` in golang
 - Complex indexing, such as compound indexes, object index, etc
-- Transactions between different collections
+- Transactions between collections and indexes
 - No database is perfect, use whatever backend that fits, default is [badger](https://github.com/dgraph-io/badger)
 
 ## Examples
