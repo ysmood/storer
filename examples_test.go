@@ -3,25 +3,24 @@ package storer_test
 import (
 	"fmt"
 
-	"github.com/vmihailenco/msgpack"
 	"github.com/ysmood/storer"
 )
 
 func ExampleList_create_read_update_delete() {
-	type User struct {
+	type Person struct {
 		Name  string
 		Level int
 	}
 
 	store := storer.New("")
 
-	users := store.List(&User{})
+	users := store.List(&Person{})
 
 	// add
-	id, _ := users.Add(&User{"Jack", 20})
+	id, _ := users.Add(&Person{"Jack", 20})
 
 	// get
-	var jack User
+	var jack Person
 	_ = users.Get(id, &jack)
 	fmt.Println(jack)
 
@@ -36,47 +35,47 @@ func ExampleList_create_read_update_delete() {
 }
 
 func ExampleList_indexing() {
-	type User struct {
+	type Account struct {
 		Name  string
 		Level int
 	}
 
 	store := storer.New("")
 
-	users := store.List(&User{})
+	users := store.List(&Account{})
 
 	// setup index
-	index := users.Index("level", func(u *User) interface{} {
+	index := users.Index("level", func(u *Account) interface{} {
 		return u.Level
 	})
 
 	// add test data
-	_, _ = users.Add(&User{"A", 1})
-	_, _ = users.Add(&User{"B", 2})
-	_, _ = users.Add(&User{"C", 2})
-	_, _ = users.Add(&User{"D", 3})
-	_, _ = users.Add(&User{"E", 5})
+	_, _ = users.Add(&Account{"A", 1})
+	_, _ = users.Add(&Account{"B", 2})
+	_, _ = users.Add(&Account{"C", 2})
+	_, _ = users.Add(&Account{"D", 3})
+	_, _ = users.Add(&Account{"E", 5})
 
 	// get the first user whose level is 1
-	var user3 User
+	var user3 Account
 	_ = index.From(3).Find(&user3)
 	fmt.Println(user3)
 
 	// get users whose level is 2
-	var users2 []User
+	var users2 []Account
 	_ = index.From(2).Find(&users2)
 	fmt.Println(len(users2))
 
 	// get users whose level is between 3 and 6
-	var twenties []User
-	_ = index.From(3).Filter(&twenties, func(u *User) bool {
+	var twenties []Account
+	_ = index.From(3).Filter(&twenties, func(u *Account) bool {
 		return u.Level < 6
 	})
 	fmt.Println(twenties)
 
 	// get users whose level is odd
-	var odd []User
-	_ = index.From(nil).Filter(&odd, func(u *User) bool {
+	var odd []Account
+	_ = index.From(nil).Filter(&odd, func(u *Account) bool {
 		return u.Level%2 == 1
 	})
 	fmt.Println(odd)
@@ -89,27 +88,27 @@ func ExampleList_indexing() {
 }
 
 func ExampleList_transaction() {
-	type User struct {
-		Level int
+	type Level struct {
+		Num int
 	}
 
 	store := storer.New("")
 
-	users := store.List(&User{})
+	users := store.List(&Level{})
 
 	// add an item
-	id, _ := users.Add(&User{1})
+	id, _ := users.Add(&Level{1})
 
 	// atomic level up
 	_ = store.Update(func(txn storer.Txn) error {
 		usersTxn := users.Txn(txn)
 
 		// get item
-		var user User
+		var user Level
 		_ = usersTxn.Get(id, &user)
 
 		// level up
-		user.Level++
+		user.Num++
 
 		// update item
 		_ = usersTxn.Set(id, &user)
@@ -118,7 +117,7 @@ func ExampleList_transaction() {
 	})
 
 	// check the update
-	var user User
+	var user Level
 	_ = users.Get(id, &user)
 	fmt.Println(user)
 
@@ -134,7 +133,7 @@ func ExampleValue() {
 	store := storer.New("")
 
 	// init value of the config
-	config := store.Value(&Config{"test.com", 8080})
+	config := store.Value("", &Config{"test.com", 8080})
 
 	// update config
 	var c Config
@@ -147,46 +146,4 @@ func ExampleValue() {
 	fmt.Println(c)
 
 	// Output: {test.com 80}
-}
-
-// the old type to be migrated
-type PersonOld struct {
-	Name string
-}
-
-// the new type to migrate to has an extra field NameLen
-type Person struct {
-	Name    string
-	NameLen int // the length of the name
-}
-
-var _ storer.Encoding = &Person{}
-
-// we just need to implement the Encoding interface
-func (p *Person) Decode(data []byte) error {
-	var pOld PersonOld
-	_ = msgpack.Unmarshal(data, &pOld)
-
-	p.Name = pOld.Name
-	p.NameLen = len(pOld.Name)
-	return nil
-}
-
-func (p *Person) Encode() ([]byte, error) {
-	return msgpack.Marshal(p)
-}
-
-func ExampleList_migration() {
-	store := storer.New("")
-
-	list := store.List(&Person{})
-
-	_ = store.Update(func(txn storer.Txn) error {
-		return list.Txn(txn).Each(func(id []byte) error {
-			var p Person
-			_ = list.Txn(txn).GetByBytes(id, &p)
-			_ = list.Txn(txn).SetByBytes(id, &p)
-			return nil
-		})
-	})
 }

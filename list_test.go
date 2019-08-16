@@ -9,10 +9,11 @@ import (
 	"github.com/ysmood/storer"
 	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/storer/pkg/typee"
 )
 
 func TestListCRUD(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 
 	index := users.Index("name", func(u *User) interface{} {
 		return u.Level
@@ -46,13 +47,13 @@ func TestListCRUD(t *testing.T) {
 }
 
 func TestItemPtrErr(t *testing.T) {
-	assert.PanicsWithValue(t, storer.ErrItemPtr, func() {
-		_ = store.List(User{})
+	assert.PanicsWithValue(t, typee.ErrNotPtr, func() {
+		_ = store.ListWithName(kit.RandString(10), User{})
 	})
 }
 
 func TestErrItemType(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 
 	type MyUser struct{}
 	_, err := users.Add(&MyUser{})
@@ -66,7 +67,7 @@ func TestErrItemType(t *testing.T) {
 }
 
 func TestHexErr(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	var user User
 	assert.EqualError(t, users.Get(".", &user), "encoding/hex: invalid byte: U+002E '.'")
 	assert.EqualError(t, users.Set(".", &user), "encoding/hex: invalid byte: U+002E '.'")
@@ -85,11 +86,11 @@ func (e *EncodeErr) Decode([]byte) error {
 	return e.err
 }
 
-var _ storer.Encoding = &EncodeErr{}
+var _ typee.Encoding = &EncodeErr{}
 
 func TestEncodeErr(t *testing.T) {
 	err := errors.New("err")
-	list := store.List(&EncodeErr{})
+	list := store.ListWithName(kit.RandString(10), &EncodeErr{})
 	_, e := list.Add(&EncodeErr{err})
 	assert.Equal(t, err, e)
 }
@@ -98,22 +99,13 @@ func TestListErrs(t *testing.T) {
 	testErr := errors.New("err")
 
 	db := &TestStore{badger: badger.New("")}
-	store := storer.Store{
-		DB: db,
-	}
-	users := store.List(&User{})
+	store := storer.NewWithDB("", db)
+	users := store.ListWithName(kit.RandString(10), &User{})
 
 	id, _ := users.Add(&User{})
 
-	db.getQueue = []interface{}{
-		[]interface{}{[]byte{}, testErr},
-	}
-
-	err := users.Set(id, &User{})
-	assert.Equal(t, testErr, err)
-
 	db.setQueue = []interface{}{testErr}
-	err = users.Set(id, &User{})
+	err := users.Set(id, &User{})
 	assert.Equal(t, testErr, err)
 
 	db.getQueue = []interface{}{
@@ -141,8 +133,8 @@ func TestListErrs(t *testing.T) {
 
 func TestListEach(t *testing.T) {
 	type extra struct{}
-	users := store.List(&User{})
-	extraList := store.List(&extra{})
+	users := store.ListWithName(kit.RandString(10), &User{})
+	extraList := store.ListWithName(kit.RandString(10), &extra{})
 
 	_, _ = users.Add(&User{"jack", 1})
 	_, _ = users.Add(&User{"jack", 2})

@@ -46,7 +46,7 @@ var ErrNotFound = errors.New("Not found")
 func (ctx *FromCtx) Find(items interface{}) error {
 	listValue := reflect.ValueOf(items).Elem()
 	isList := listValue.Kind() == reflect.Slice
-	itemType := ctx.txnCtx.index.list.dict.itemType.Elem()
+	itemType := ctx.txnCtx.index.list.dict.typeID.Type
 	noItem := true
 
 	err := ctx.Each(func(ctx *IterCtx) error {
@@ -83,7 +83,7 @@ var ErrFilterReturn = errors.New("filter wrong return type")
 // Filter to stop the filter return ErrStop
 func (ctx *FromCtx) Filter(items interface{}, fn interface{}) error {
 	listValue := reflect.ValueOf(items).Elem()
-	itemType := ctx.txnCtx.index.list.dict.itemType.Elem()
+	itemType := ctx.txnCtx.index.list.dict.typeID.Type
 
 	return ctx.Each(func(ctx *IterCtx) error {
 		item := reflect.New(itemType)
@@ -122,6 +122,13 @@ func (ctx *IterCtx) Item(item interface{}) error {
 	return ctx.forCtx.txnCtx.index.list.Txn(
 		ctx.forCtx.txnCtx.txn,
 	).GetByBytes(ctx.IDBytes(), item)
+}
+
+// Reindex ...
+func (index *Index) Reindex() error {
+	return index.list.dict.store.Update(func(txn Txn) error {
+		return index.Txn(txn).Reindex()
+	})
 }
 
 // FromTxnCtx ...

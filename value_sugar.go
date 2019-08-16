@@ -1,6 +1,9 @@
 package storer
 
-import "github.com/ysmood/storer/pkg/kvstore"
+import (
+	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/storer/pkg/typee"
+)
 
 // Value single value store
 type Value struct {
@@ -26,7 +29,11 @@ func (t *ValueTxn) Set(item interface{}) error {
 
 // Get ...
 func (t *ValueTxn) Get(item interface{}) error {
-	return t.dictTxn.GetByBytes(nil, item)
+	err := t.dictTxn.GetByBytes(nil, item)
+	if err == typee.ErrMigrated {
+		return nil
+	}
+	return err
 }
 
 // Set ...

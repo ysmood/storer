@@ -2,6 +2,7 @@ package storer
 
 import (
 	"bytes"
+	"reflect"
 
 	"github.com/ysmood/byframe"
 	"github.com/ysmood/storer/pkg/bucket"
@@ -38,6 +39,7 @@ type Index struct {
 	name     string
 	list     *List
 	bucket   *bucket.Bucket
+	rbucket  *bucket.Bucket
 	genIndex GenIndexBytes
 }
 
@@ -68,38 +70,50 @@ func (index *Index) add(txn kvstore.Txn, itemID []byte, item interface{}) error 
 	if err != nil {
 		return err
 	}
+	key := index.id(i, itemID)
+
+	err = txn.Set(index.rbucket.Prefix(itemID), i)
+	if err != nil {
+		return err
+	}
+
+	return txn.Set(key, nil)
+}
+
+func (index *Index) update(txn kvstore.Txn, itemID []byte, item interface{}) error {
+	rid := index.rbucket.Prefix(itemID)
+	old, err := txn.Get(rid)
+	if err != nil {
+		return err
+	}
+
+	i, err := index.genIndex(&GenCtx{Item: item, Txn: txn, Action: IndexUpdate})
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(old, i) {
+		return nil
+	}
+
+	err = txn.Set(rid, i)
+	if err != nil {
+		return err
+	}
 
 	return txn.Set(index.id(i, itemID), nil)
 }
 
-func (index *Index) update(txn kvstore.Txn, itemID []byte, old, new interface{}) error {
-	oldIndex, err := index.genIndex(&GenCtx{Item: old, Txn: txn, Action: IndexUpdate})
+func (index *Index) del(txn kvstore.Txn, itemID []byte) error {
+	rid := index.rbucket.Prefix(itemID)
+	i, err := txn.Get(rid)
 	if err != nil {
 		return err
 	}
-	newIndex, err := index.genIndex(&GenCtx{Item: new, Txn: txn, Action: IndexUpdate})
+	err = txn.Delete(rid)
 	if err != nil {
 		return err
 	}
-
-	if bytes.Equal(oldIndex, newIndex) {
-		return nil
-	}
-
-	err = txn.Delete(index.id(oldIndex, itemID))
-	if err != nil {
-		return err
-	}
-
-	return txn.Set(index.id(newIndex, itemID), nil)
-}
-
-func (index *Index) del(txn kvstore.Txn, itemID []byte, item interface{}) error {
-	i, err := index.genIndex(&GenCtx{Item: item, Txn: txn, Action: IndexDelete})
-	if err != nil {
-		return err
-	}
-
 	return txn.Delete(index.id(i, itemID))
 }
 
@@ -123,6 +137,25 @@ func (txnCtx *IndexTxn) FromByBytes(from []byte) *FromCtx {
 		txnCtx: txnCtx,
 		from:   from,
 	}
+}
+
+// Reindex ...
+func (txnCtx *IndexTxn) Reindex() error {
+	prefix := txnCtx.index.rbucket.Prefix(nil)
+	l := len(prefix)
+	return txnCtx.txn.Do(false, prefix, func(key []byte) error {
+		if !bytes.HasPrefix(key, prefix) {
+			return ErrStop
+		}
+		itemID := key[l:]
+
+		item := reflect.New(txnCtx.index.list.dict.typeID.Type).Interface()
+		err := txnCtx.index.list.Txn(txnCtx.txn).GetByBytes(itemID, item)
+		if err != nil {
+			return err
+		}
+		return txnCtx.index.update(txnCtx.txn, itemID, item)
+	})
 }
 
 // FromCtx ...

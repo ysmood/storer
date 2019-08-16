@@ -6,6 +6,7 @@ import (
 
 	"github.com/ysmood/storer/pkg/bucket"
 	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/storer/pkg/typee"
 )
 
 // ErrItemType ...
@@ -14,10 +15,10 @@ var ErrItemType = errors.New("wrong item type")
 // Map the base type of the system, such as List is based on Map
 // It provides basic set and get object to the database.
 type Map struct {
-	name     string
-	store    *Store
-	itemType reflect.Type
-	bucket   *bucket.Bucket
+	name   string
+	store  *Store
+	typeID *typee.TypeID
+	bucket *bucket.Bucket
 }
 
 // MapTxn ...
@@ -36,11 +37,11 @@ func (dict *Map) Txn(txn kvstore.Txn) *MapTxn {
 
 // SetByBytes set an item to the map
 func (dictTxn *MapTxn) SetByBytes(id []byte, item interface{}) error {
-	if dictTxn.dict.itemType != reflect.TypeOf(item) {
+	if dictTxn.dict.typeID.Type != reflect.TypeOf(item).Elem() {
 		return ErrItemType
 	}
 
-	data, err := Encode(item)
+	data, err := typee.Encode(item, dictTxn.typeIDMapper)
 	if err != nil {
 		return err
 	}
@@ -50,7 +51,7 @@ func (dictTxn *MapTxn) SetByBytes(id []byte, item interface{}) error {
 
 // GetByBytes get item from the map
 func (dictTxn *MapTxn) GetByBytes(id []byte, item interface{}) error {
-	if dictTxn.dict.itemType != reflect.TypeOf(item) {
+	if dictTxn.dict.typeID.Type != reflect.TypeOf(item).Elem() {
 		return ErrItemType
 	}
 
@@ -58,7 +59,17 @@ func (dictTxn *MapTxn) GetByBytes(id []byte, item interface{}) error {
 	if err != nil {
 		return err
 	}
-	return Decode(raw, item)
+	err = typee.Decode(raw, item, dictTxn.typeIDMapper)
+	if err == typee.ErrMigrated {
+		// so that same migration won't happen again
+		err = dictTxn.dict.SetByBytes(id, item)
+		if err != nil {
+			return err
+		}
+		// upper data structure should also handle this
+		return typee.ErrMigrated
+	}
+	return err
 }
 
 // DelByBytes remove a item from the map
@@ -78,4 +89,23 @@ func (dictTxn *MapTxn) Each(fn MapEach) error {
 
 		return fn(key[dictTxn.dict.bucket.Len():])
 	})
+}
+
+func (dictTxn *MapTxn) typeIDMapper(longID []byte) ([]byte, error) {
+	if b, ok := dictTxn.dict.store.bucketCache.Load(string(longID)); ok {
+		return b.([]byte), nil
+	}
+
+	var b *bucket.Bucket
+	var err error
+	err = dictTxn.dict.store.Update(func(txn Txn) error {
+		b, err = bucket.New(txn, longID)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	shortID := b.Prefix(nil)
+	dictTxn.dict.store.bucketCache.Store(string(longID), shortID)
+	return shortID, nil
 }

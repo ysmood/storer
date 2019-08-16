@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/ysmood/storer"
+	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/storer/pkg/typee"
 
 	"github.com/ysmood/kit"
 )
@@ -12,15 +14,15 @@ import (
 const rounds = 10000
 
 func BenchmarkBadgerSet(b *testing.B) {
-	store := storer.New("")
+	db := badger.New("")
 
-	data, err := storer.Encode(User{Name: "jack", Level: 1})
+	data, err := typee.Encode(&User{Name: "jack", Level: 1}, nil)
 	kit.E(err)
 
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		kit.E(store.DB.Do(true, func(txn kvstore.Txn) error {
+		kit.E(db.Do(true, func(txn kvstore.Txn) error {
 			return txn.Set(kit.RandBytes(12), data)
 		}))
 	}
@@ -29,7 +31,7 @@ func BenchmarkBadgerSet(b *testing.B) {
 func BenchmarkSet(b *testing.B) {
 	store := storer.New("")
 
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 
 	user := &User{Name: "jack", Level: 1}
 
@@ -43,7 +45,7 @@ func BenchmarkSet(b *testing.B) {
 func BenchmarkSetWithIndex(b *testing.B) {
 	store := storer.New("")
 
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	_ = users.Index("level", func(u *User) interface{} {
 		return u.Level
 	})
@@ -57,15 +59,15 @@ func BenchmarkSetWithIndex(b *testing.B) {
 	}
 }
 func BenchmarkBadgerGet(b *testing.B) {
-	store := storer.New("")
+	db := badger.New("")
 
-	data, err := storer.Encode(User{Name: "jack", Level: 1})
+	data, err := typee.Encode(&User{Name: "jack", Level: 1}, nil)
 	kit.E(err)
 
 	var id []byte
 	for i := 0; i < rounds; i++ {
 		var err error
-		kit.E(store.DB.Do(true, func(txn kvstore.Txn) error {
+		kit.E(db.Do(true, func(txn kvstore.Txn) error {
 			id = kit.RandBytes(12)
 			return txn.Set(id, data)
 		}))
@@ -75,7 +77,7 @@ func BenchmarkBadgerGet(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		kit.E(store.DB.Do(false, func(txn kvstore.Txn) error {
+		kit.E(db.Do(false, func(txn kvstore.Txn) error {
 			_, err := txn.Get(id)
 			return err
 		}))
@@ -85,7 +87,7 @@ func BenchmarkBadgerGet(b *testing.B) {
 func BenchmarkGet(b *testing.B) {
 	store := storer.New("")
 
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 
 	user := &User{Name: "jack", Level: 1}
 
@@ -104,15 +106,15 @@ func BenchmarkGet(b *testing.B) {
 }
 
 func BenchmarkBadgerPrefixGet(b *testing.B) {
-	store := storer.New("")
+	db := badger.New("")
 
-	data, err := storer.Encode(User{Name: "jack", Level: 1})
+	data, err := typee.Encode(&User{Name: "jack", Level: 1}, nil)
 	kit.E(err)
 
 	var id []byte
 	for i := 0; i < rounds; i++ {
 		var err error
-		kit.E(store.DB.Do(true, func(txn kvstore.Txn) error {
+		kit.E(db.Do(true, func(txn kvstore.Txn) error {
 			id = kit.RandBytes(12)
 			return txn.Set(id, data)
 		}))
@@ -122,7 +124,7 @@ func BenchmarkBadgerPrefixGet(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		kit.E(store.DB.Do(false, func(txn kvstore.Txn) error {
+		kit.E(db.Do(false, func(txn kvstore.Txn) error {
 			return txn.Do(false, id, func(key []byte) error {
 				_, _ = txn.Get(id)
 				return storer.ErrStop
@@ -132,7 +134,7 @@ func BenchmarkBadgerPrefixGet(b *testing.B) {
 }
 
 func BenchmarkGetByIndex(b *testing.B) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("level", func(u *User) interface{} {
 		return u.Level
 	})
@@ -154,7 +156,7 @@ func BenchmarkGetByIndex(b *testing.B) {
 }
 
 func BenchmarkFilter(b *testing.B) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("level", func(u *User) interface{} {
 		return u.Level
 	})

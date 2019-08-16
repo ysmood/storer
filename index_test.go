@@ -13,7 +13,7 @@ import (
 )
 
 func TestNotFound(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("name", func(ctx *storer.GenCtx) interface{} {
 		return ctx.Item.(*User).Name
 	})
@@ -31,7 +31,7 @@ func TestNotFound(t *testing.T) {
 func TestLongIndex(t *testing.T) {
 	longStr := kit.RandString(1000)
 
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("name", func(u *User) interface{} {
 		return longStr + u.Name
 	})
@@ -44,7 +44,7 @@ func TestLongIndex(t *testing.T) {
 }
 
 func TestReverse(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("name", func(u *User) interface{} {
 		return u.Level
 	})
@@ -64,7 +64,7 @@ func TestReverse(t *testing.T) {
 }
 
 func TestFindAll(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("name", func(u *User) interface{} {
 		return u.Name
 	})
@@ -84,11 +84,9 @@ func TestFromGetErr(t *testing.T) {
 	testErr := errors.New("err")
 
 	db := &TestStore{badger: badger.New("")}
-	store := storer.Store{
-		DB: db,
-	}
+	store := storer.NewWithDB("", db)
 
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("name", func(u *User) interface{} {
 		return u.Name
 	})
@@ -119,7 +117,7 @@ func TestFromGetErr(t *testing.T) {
 }
 
 func TestEach(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("age", func(ctx *storer.GenCtx) interface{} {
 		return ctx.Item.(*User).Level
 	})
@@ -140,7 +138,7 @@ func TestEach(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	index := users.Index("age", func(ctx *storer.GenCtx) interface{} {
 		return ctx.Item.(*User).Level
 	})
@@ -171,8 +169,29 @@ func TestFilter(t *testing.T) {
 	assert.Equal(t, storer.ErrFilterReturn, err)
 }
 
+func TestReindex(t *testing.T) {
+	users := store.ListWithName(kit.RandString(10), &User{})
+	rebuild := false
+	index := users.Index("age", func(ctx *storer.GenCtx) interface{} {
+		if rebuild {
+			return ctx.Item.(*User).Level / 10
+		}
+		return ctx.Item.(*User).Level
+	})
+
+	_, _ = users.Add(&User{"jack", 10})
+	_, _ = users.Add(&User{"jack", 20})
+
+	rebuild = true
+	_ = index.Reindex()
+
+	var u User
+	_ = index.From(2).Find(&u)
+	assert.Equal(t, User{"jack", 20}, u)
+}
+
 func TestUniqueIndex(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	_ = users.UniqueIndex("name", func(ctx *storer.GenCtx) interface{} {
 		return ctx.Item.(*User).Name
 	})
@@ -191,7 +210,7 @@ func TestUniqueIndex(t *testing.T) {
 }
 
 func TestIndexExistsErr(t *testing.T) {
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	_ = users.Index("name", func(_ *User) interface{} {
 		return nil
 	})
@@ -206,57 +225,11 @@ func TestIndexUpdateErr1(t *testing.T) {
 	testErr := errors.New("err")
 	q := &queue{1, testErr}
 
-	users := store.List(&User{})
+	users := store.ListWithName(kit.RandString(10), &User{})
 	_ = users.Index("level", func(_ *User) interface{} {
 		return q.pop()
 	})
 	id, _ := users.Add(&User{"a", 1})
 	err := users.Set(id, &User{"b", 2})
-	assert.Equal(t, testErr, err)
-}
-
-func TestIndexUpdateErr2(t *testing.T) {
-	testErr := errors.New("err")
-	q := &queue{1, 1, testErr}
-
-	users := store.List(&User{})
-	_ = users.Index("level", func(_ *User) interface{} {
-		return q.pop()
-	})
-	id, _ := users.Add(&User{"a", 1})
-	err := users.Set(id, &User{"b", 2})
-	assert.Equal(t, testErr, err)
-}
-
-func TestIndexUpdateErr3(t *testing.T) {
-	testErr := errors.New("err")
-
-	store := storer.Store{
-		DB: &TestStore{
-			badger:      badger.New(""),
-			deleteQueue: []interface{}{testErr},
-		},
-	}
-
-	users := store.List(&User{})
-	_ = users.Index("level", func(u *User) interface{} {
-		return u.Level
-	})
-
-	id, _ := users.Add(&User{"a", 1})
-	err := users.Set(id, &User{"b", 2})
-	assert.Equal(t, testErr, err)
-}
-
-func TestIndexDelErr3(t *testing.T) {
-	testErr := errors.New("err")
-	q := &queue{1, testErr}
-
-	users := store.List(&User{})
-	_ = users.Index("level", func(_ *User) interface{} {
-		return q.pop()
-	})
-	id, _ := users.Add(&User{"a", 1})
-	err := users.Del(id)
 	assert.Equal(t, testErr, err)
 }

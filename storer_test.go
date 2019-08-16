@@ -27,7 +27,7 @@ func TestClose(t *testing.T) {
 func TestValue(t *testing.T) {
 	type myval int
 	var v myval = 1
-	val := store.Value(&v)
+	val := store.Value(kit.RandString(10), &v)
 
 	_ = val.Get(&v)
 

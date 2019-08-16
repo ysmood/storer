@@ -1,15 +1,17 @@
 package storer
 
 import (
-	"errors"
-	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/ysmood/kit/pkg/utils"
-	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/bucket"
 	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/storer/pkg/typee"
 )
+
+// ErrKeyNotFound ...
+var ErrKeyNotFound = kvstore.ErrKeyNotFound
 
 // Database ...
 type Database interface {
@@ -21,80 +23,59 @@ type Database interface {
 
 // Store ...
 type Store struct {
-	// Name so that you can use multiple stores for the same database
-	Name string
+	// name so that you can use multiple stores for the same database
+	name string
 
-	// DB the backend for storing data
-	DB Database
+	// db the backend for storing data
+	db Database
+
+	bucketCache *sync.Map
 }
 
-// New a shortcut to use badger as the backend.
-// The "pkg/kvstore/badger.go" is an example to implement the "kvstore.Store" interface.
-func New(dir string) *Store {
+// NewWithDB use your custom backend as the database
+func NewWithDB(name string, db Database) *Store {
 	return &Store{
-		DB: badger.New(dir),
+		name:        name,
+		db:          db,
+		bucketCache: &sync.Map{},
 	}
 }
 
 // Close close database
 func (store *Store) Close() error {
-	return store.DB.Close()
+	return store.db.Close()
 }
 
-// Map create a map
-func (store *Store) Map(item interface{}) *Map {
-	return store.new(mapType, item)
-}
+// MapWithName ...
+func (store *Store) MapWithName(name string, item interface{}) *Map {
+	typeID := typee.GenTypeID(item)
 
-// Value create a value store, the item is also the init value
-func (store *Store) Value(item interface{}) *Value {
-	dict := store.new(valueType, item)
-	err := dict.GetByBytes(nil, item)
-	if err == ErrKeyNotFound {
-		utils.E(dict.SetByBytes(nil, item))
+	return &Map{
+		name:   name,
+		store:  store,
+		typeID: typeID,
+		bucket: store.bucket(typeID.Anchor, name),
 	}
-	return &Value{dict: dict}
 }
 
-// List create a list, the name must be unique among all lists
-func (store *Store) List(item interface{}) *List {
+// ListWithName ...
+func (store *Store) ListWithName(name string, item interface{}) *List {
 	return &List{
-		dict:    store.new(listType, item),
+		dict:    store.MapWithName(name, item),
 		indexes: map[string]*Index{},
 	}
 }
 
 // The prefix of the created bucket will be like "mydb:list:users"
-func (store *Store) bucket(names ...string) (*bucket.Bucket, error) {
-	name := strings.Join(append([]string{store.Name}, names...), ":")
+func (store *Store) bucket(names ...string) *bucket.Bucket {
+	name := strings.Join(append([]string{store.name}, names...), ":")
 
 	var b *bucket.Bucket
-	err := store.DB.Do(true, func(txn kvstore.Txn) error {
+	utils.E(store.Update(func(txn kvstore.Txn) error {
 		var err error
-		b, err = bucket.New(txn, name)
+		b, err = bucket.New(txn, []byte(name))
 		return err
-	})
-	return b, err
-}
+	}))
 
-// ErrItemPtr when the item argument is no a pointer
-var ErrItemPtr = errors.New("must be a pointer to the item")
-
-// create a new collection
-func (store *Store) new(dataType string, item interface{}) *Map {
-	t, name := GenTypeID(item)
-
-	if t.Kind() != reflect.Ptr {
-		panic(ErrItemPtr)
-	}
-
-	bucket, err := store.bucket(dataType, name)
-	utils.E(err)
-
-	return &Map{
-		name:     name,
-		store:    store,
-		itemType: t,
-		bucket:   bucket,
-	}
+	return b
 }

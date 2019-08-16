@@ -8,6 +8,7 @@ import (
 	"github.com/ysmood/storer"
 	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/storer/pkg/typee"
 )
 
 type User struct {
@@ -15,21 +16,16 @@ type User struct {
 	Level int
 }
 
-var _ storer.Unique = &User{}
-var _ storer.UniqueType = &User{}
-var _ storer.Encoding = &User{}
+var _ typee.Unique = &User{}
+var _ typee.Encoding = &User{}
 
 var UserIDCounter = uint64(0)
 
-func (u *User) ID() []byte {
+func (u *User) UUID() []byte {
 	b := make([]byte, 8)
 	n := binary.PutUvarint(b, UserIDCounter)
 	UserIDCounter++
 	return b[:n]
-}
-
-func (u *User) TypeID() string {
-	return kit.RandString(10)
 }
 
 func (u *User) Encode() ([]byte, error) {

@@ -1,29 +1,24 @@
 package bucket
 
-// This bucket lib is dependency free, you can use whatever backend you want.
-
 import (
 	"bytes"
+	"errors"
 
 	"github.com/ysmood/byframe"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
 // the prefix for name map
-var counterPrefix = byframe.EncodeHeader(0)
-var nameMapPrefix = byframe.EncodeHeader(1)
+var nameMapPrefix = byframe.EncodeHeader(0)
 
 // ErrKeyNotFound ...
 var ErrKeyNotFound = kvstore.ErrKeyNotFound
 
-// Txn the transaction interface
-type Txn interface {
-	// Get when err is ErrKeyNotFound the key doesn't exist
-	Get(key []byte) (value []byte, err error)
+// ErrEmptyName ...
+var ErrEmptyName = errors.New("name cannot be empty")
 
-	// Set ...
-	Set(key, value []byte) error
-}
+// Txn ...
+type Txn = kvstore.Txn
 
 // Bucket ...
 type Bucket struct {
@@ -31,24 +26,28 @@ type Bucket struct {
 }
 
 // New create an bucket via the name.
-// For the same database file use the same name will always get the same prefix.
+// For the same database file use the same name will always get the same bucket.
 // The prefix size is dynamic, it begins with 1 byte.
-// About the max number of buckets, for 32bit CPU it's 2^(4*7 - 1) - 2,
-// for 64bit CPU the number is 2^(8*7 - 1) - 2.
-func New(txn Txn, name string) (*Bucket, error) {
+// About the max number of buckets is usually based on the CPU, for 32bit CPU it's 2^(4*7 - 1) - 1,
+// for 64bit CPU the number is 2^(8*7 - 1) - 1. It's way enough for common usage.
+func New(txn Txn, name []byte) (*Bucket, error) {
+	if len(name) == 0 {
+		return nil, ErrEmptyName
+	}
+
 	key := append(nameMapPrefix, name...)
 
 	prefix, err := txn.Get(key)
 	if err == nil {
-		return &Bucket{prefix: prefix}, nil
+		return &Bucket{prefix}, nil
 	} else if err != ErrKeyNotFound {
 		return nil, err
 	}
 
-	countData, err := txn.Get(counterPrefix)
+	countData, err := txn.Get(nameMapPrefix)
 
 	if err == ErrKeyNotFound {
-		countData = byframe.EncodeHeader(1)
+		countData = nameMapPrefix
 	} else if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,7 @@ func New(txn Txn, name string) (*Bucket, error) {
 	count, _, _ := byframe.DecodeHeader(countData)
 	countData = byframe.EncodeHeader(count + 1)
 
-	err = txn.Set(counterPrefix, countData)
+	err = txn.Set(nameMapPrefix, countData)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +65,12 @@ func New(txn Txn, name string) (*Bucket, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Bucket{prefix: countData}, nil
+	return &Bucket{countData}, nil
+}
+
+// Delete delete bucket from the db
+func Delete(txn Txn, name string) error {
+	return txn.Delete(append(nameMapPrefix, name...))
 }
 
 // Set set key and value to the store with prefix
@@ -77,6 +81,11 @@ func (b *Bucket) Set(txn Txn, key, value []byte) error {
 // Get get value by the key from the store with prefix
 func (b *Bucket) Get(txn Txn, key []byte) ([]byte, error) {
 	return txn.Get(b.Prefix(key))
+}
+
+// Delete delete value by the key with prefix
+func (b *Bucket) Delete(txn Txn, key []byte) error {
+	return txn.Delete(b.Prefix(key))
 }
 
 // Prefix prefix key
@@ -96,4 +105,14 @@ func (b *Bucket) Valid(prefixedKey []byte) bool {
 		return false
 	}
 	return bytes.Equal(b.prefix, prefixedKey[:l])
+}
+
+// Empty remove everything in the bucket.
+func (b *Bucket) Empty(txn Txn) error {
+	return txn.Do(false, b.prefix, func(key []byte) error {
+		if b.Valid(key) {
+			return txn.Delete(key)
+		}
+		return kvstore.ErrStop
+	})
 }

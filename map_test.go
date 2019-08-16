@@ -9,7 +9,7 @@ import (
 )
 
 func TestMapTxn(t *testing.T) {
-	users := store.Map(&User{})
+	users := store.MapWithName(kit.RandString(10), &User{})
 
 	kit.E(store.Update(func(txn kvstore.Txn) error {
 		usersTxn := users.Txn(txn)
@@ -33,7 +33,7 @@ func TestMapTxn(t *testing.T) {
 }
 
 func TestMapOps(t *testing.T) {
-	users := store.Map(&User{})
+	users := store.MapWithName(kit.RandString(10), &User{})
 
 	var jack User
 

@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/ysmood/storer/pkg/kvstore"
+	"github.com/ysmood/storer/pkg/typee"
 )
 
 // ErrIndexExists ...
@@ -32,7 +33,7 @@ func (list *List) Txn(txn kvstore.Txn) *ListTxn {
 
 // AddByBytes add an item to the list, return the id and error
 func (listTxn *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
-	id := GenID(item)
+	id := typee.GenID(item)
 	err := listTxn.dictTxn.SetByBytes(id, item)
 	if err != nil {
 		return nil, err
@@ -50,44 +51,43 @@ func (listTxn *ListTxn) AddByBytes(item interface{}) ([]byte, error) {
 
 // GetByBytes get item from the list
 func (listTxn *ListTxn) GetByBytes(id []byte, item interface{}) error {
-	return listTxn.dictTxn.GetByBytes(id, item)
+	err := listTxn.dictTxn.GetByBytes(id, item)
+	if err == typee.ErrMigrated {
+		return listTxn.updateIndex(id, item)
+	}
+	return err
 }
 
 // SetByBytes update an existing item
 func (listTxn *ListTxn) SetByBytes(id []byte, item interface{}) error {
-	oldItem := reflect.New(listTxn.list.dict.itemType.Elem())
-
-	// if the item doesn't exist return error
-	err := listTxn.GetByBytes(id, oldItem.Interface())
+	err := listTxn.dictTxn.SetByBytes(id, item)
 	if err != nil {
 		return err
 	}
 
-	err = listTxn.dictTxn.SetByBytes(id, item)
-	if err != nil {
-		return err
-	}
+	return listTxn.updateIndex(id, item)
+}
 
+func (listTxn *ListTxn) updateIndex(id []byte, item interface{}) error {
 	for _, index := range listTxn.list.indexes {
-		err = index.update(listTxn.dictTxn.txn, id, oldItem.Interface(), item)
+		err := index.update(listTxn.dictTxn.txn, id, item)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
 // DelByBytes remove a item from the list
 func (listTxn *ListTxn) DelByBytes(id []byte) error {
-	item := reflect.New(listTxn.list.dict.itemType.Elem())
+	item := reflect.New(listTxn.list.dict.typeID.Type)
 	err := listTxn.GetByBytes(id, item.Interface())
 	if err != nil {
 		return err
 	}
 
 	for _, index := range listTxn.list.indexes {
-		err := index.del(listTxn.dictTxn.txn, id, item.Interface())
+		err := index.del(listTxn.dictTxn.txn, id)
 		if err != nil {
 			return err
 		}
@@ -98,20 +98,26 @@ func (listTxn *ListTxn) DelByBytes(id []byte) error {
 
 // IndexByBytes byte version of Index
 func (listTxn *ListTxn) IndexByBytes(name string, fn GenIndexBytes) (*Index, error) {
-	bucket, err := listTxn.list.dict.store.bucket(indexType, listTxn.list.dict.name, name)
-	if err != nil {
-		return nil, err
-	}
-
 	_, has := listTxn.list.indexes[name]
 	if has {
 		return nil, ErrIndexExists
 	}
 
 	index := &Index{
-		name:     name,
-		list:     listTxn.list,
-		bucket:   bucket,
+		name: name,
+		list: listTxn.list,
+		bucket: listTxn.list.dict.store.bucket(
+			listTxn.list.dict.typeID.Anchor,
+			listTxn.list.dict.name,
+			"index",
+			name,
+		),
+		rbucket: listTxn.list.dict.store.bucket(
+			listTxn.list.dict.typeID.Anchor,
+			listTxn.list.dict.name,
+			"rindex",
+			name,
+		),
 		genIndex: fn,
 	}
 

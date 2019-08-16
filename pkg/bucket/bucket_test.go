@@ -16,11 +16,11 @@ func TestBasic(t *testing.T) {
 
 	db := badger.New(dir)
 	_ = db.Do(true, func(txn kvstore.Txn) error {
-		b, _ := bucket.New(txn, "test")
-		assert.True(t, b.Valid([]byte{2}))
+		b, _ := bucket.New(txn, []byte("test"))
+		assert.True(t, b.Valid([]byte{1}))
 
-		b, _ = bucket.New(txn, "test")
-		assert.True(t, b.Valid([]byte{2}))
+		b, _ = bucket.New(txn, []byte("test"))
+		assert.True(t, b.Valid([]byte{1}))
 
 		assert.Equal(t, 1, b.Len())
 
@@ -32,19 +32,52 @@ func TestBasic(t *testing.T) {
 
 	// open the db file again
 	_ = badger.New(dir).Do(true, func(txn kvstore.Txn) error {
-		b, _ := bucket.New(txn, "test")
+		b, _ := bucket.New(txn, []byte("test"))
+		assert.True(t, b.Valid([]byte{1}))
+
+		b, _ = bucket.New(txn, []byte("a"))
 		assert.True(t, b.Valid([]byte{2}))
 
-		b, _ = bucket.New(txn, "a")
-		assert.True(t, b.Valid([]byte{3}))
+		_, err := bucket.New(txn, []byte(""))
+		assert.Equal(t, bucket.ErrEmptyName, err)
 
-		b, _ = bucket.New(txn, "")
-		assert.True(t, b.Valid([]byte{4}))
-
-		b, _ = bucket.New(txn, kit.RandString(10))
+		b, _ = bucket.New(txn, kit.RandBytes(10))
 		_ = b.Set(txn, []byte("key"), []byte("value"))
 		val, _ := b.Get(txn, []byte("key"))
 		assert.Equal(t, []byte("value"), val)
+
+		_ = b.Delete(txn, []byte("key"))
+		_, err = b.Get(txn, []byte("key"))
+		assert.Equal(t, bucket.ErrKeyNotFound, err)
+		return nil
+	})
+}
+
+func TestDrop(t *testing.T) {
+	dir := "tmp/" + kit.RandString(10)
+
+	db := badger.New(dir)
+	_ = db.Do(true, func(txn kvstore.Txn) error {
+		a, _ := bucket.New(txn, []byte("a"))
+		b, _ := bucket.New(txn, []byte("b"))
+
+		_ = a.Set(txn, []byte("k"), []byte("a"))
+		_ = b.Set(txn, []byte("k"), []byte("b"))
+
+		_ = a.Empty(txn)
+		_ = bucket.Delete(txn, "a")
+
+		res := [][]byte{}
+		_ = txn.Do(false, []byte{}, func(k []byte) error {
+			kk := make([]byte, len(k))
+			copy(kk, k)
+			res = append(res, kk)
+			return nil
+		})
+		assert.Len(t, res, 3)
+
+		v, _ := b.Get(txn, []byte("k"))
+		assert.Equal(t, []byte("b"), v)
 		return nil
 	})
 }
@@ -71,19 +104,19 @@ func (txn *ErrTxn) Set(key, value []byte) error {
 
 func TestErr(t *testing.T) {
 	txn := &ErrTxn{errs: []error{errTxn}}
-	_, err := bucket.New(txn, "test")
+	_, err := bucket.New(txn, []byte("test1"))
 	assert.Equal(t, errTxn, err)
 
 	txn = &ErrTxn{errs: []error{bucket.ErrKeyNotFound, errTxn}}
-	_, err = bucket.New(txn, "test")
+	_, err = bucket.New(txn, []byte("test2"))
 	assert.Equal(t, errTxn, err)
 
 	txn = &ErrTxn{errs: []error{bucket.ErrKeyNotFound, nil, errTxn}}
-	_, err = bucket.New(txn, "test")
+	_, err = bucket.New(txn, []byte("test3"))
 	assert.Equal(t, errTxn, err)
 
 	txn = &ErrTxn{errs: []error{bucket.ErrKeyNotFound, nil, nil, errTxn}}
-	_, err = bucket.New(txn, "test")
+	_, err = bucket.New(txn, []byte("test4"))
 	assert.Equal(t, errTxn, err)
 
 	b := bucket.Bucket{}
