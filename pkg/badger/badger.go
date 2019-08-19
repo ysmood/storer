@@ -1,9 +1,8 @@
 package badger
 
 import (
-	"fmt"
 	"os"
-	"time"
+	"path/filepath"
 
 	"github.com/dgraph-io/badger"
 	"github.com/ysmood/kit/pkg/utils"
@@ -21,7 +20,7 @@ var _ kvstore.Store = &Badger{}
 // If the dir is empty a tmp dir will be created.
 func New(dir string) *Badger {
 	if dir == "" {
-		dir = fmt.Sprintf("tmp/%d", time.Now().UnixNano())
+		dir = filepath.Join("tmp", utils.RandString(10))
 	}
 
 	err := os.MkdirAll(dir, 0775)

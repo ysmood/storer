@@ -3,16 +3,13 @@ module github.com/ysmood/storer
 go 1.12
 
 require (
-	github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 // indirect
 	github.com/bmatcuk/doublestar v1.1.4 // indirect
-	github.com/dgraph-io/badger v2.0.0-rc2+incompatible
-	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/dgraph-io/badger v0.0.0-20190809121831-9d7b751e85c9
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/lib/pq v1.2.0
 	github.com/nochso/bytesort v0.0.0-20170918190500-3c6f8391bc94
-	github.com/pkg/errors v0.8.1 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/tidwall/gjson v1.3.2 // indirect
 	github.com/ugorji/go v1.1.7 // indirect

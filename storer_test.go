@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/ysmood/kit"
 	"github.com/ysmood/storer"
+	"github.com/ysmood/storer/pkg/postgres"
 )
 
 var store *storer.Store
@@ -48,4 +49,24 @@ func TestValue(t *testing.T) {
 
 		return nil
 	})
+}
+
+func TestPG(t *testing.T) {
+	db := postgres.New("")
+	store := storer.NewWithDB("", db)
+
+	list := store.List(&User{})
+	index := list.Index("level", func(u *User) interface{} {
+		return u.Level
+	})
+
+	_, err := list.Add(&User{"a", 1})
+	kit.E(err)
+	_, err = list.Add(&User{"b", 2})
+	kit.E(err)
+
+	var u User
+	kit.E(index.From(2).Find(&u))
+
+	assert.Equal(t, "b", u.Name)
 }

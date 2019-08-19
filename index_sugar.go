@@ -70,11 +70,13 @@ func (ctx *FromCtx) Find(items interface{}) error {
 		}
 		return nil
 	})
-
+	if err != nil {
+		return err
+	}
 	if noItem {
 		return ErrNotFound
 	}
-	return err
+	return nil
 }
 
 // ErrFilterReturn ...

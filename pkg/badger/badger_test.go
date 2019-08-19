@@ -72,6 +72,13 @@ func TestIteration(t *testing.T) {
 		assert.Equal(t, [][]byte{b, c}, keys)
 		assert.Equal(t, [][]byte{a, b}, values)
 
+		keys = [][]byte{}
+		_ = txn.Do(true, b, func(k []byte) error {
+			keys = append(keys, k)
+			return nil
+		})
+
+		assert.Equal(t, [][]byte{b, a}, keys)
 		return nil
 	})
 }

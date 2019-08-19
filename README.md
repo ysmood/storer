@@ -11,7 +11,8 @@ It's a proof of concept for [pkg/kvstore](pkg/kvstore/interface.go).
 It should be pretty easy to build low overhead random graph algorithm or SQL like DSL on top of it.
 
 Normally you use badger as the backend at the early stage of your project, when you need to scale
-you can seamlessly switch the backend to db like tikv or postgres.
+you can seamlessly switch the backend to db like tikv or postgres. Currently badger and postgres are
+supported. It's fairly easy to create new adapters, only need to implement 5 functions.
 
 ## Features
 
@@ -24,6 +25,39 @@ you can seamlessly switch the backend to db like tikv or postgres.
 ## Examples
 
 Check the [example file](examples_test.go). Also the [examples folder](examples).
+
+```go
+package main
+
+import "github.com/ysmood/storer"
+
+type User struct {
+    Name  string
+    Level int
+}
+
+func main() {
+    store := storer.New("db-dir")
+
+    users := store.List(&User{})
+
+    // setup index
+    index := users.Index("level", func(u *User) interface{} {
+        return u.Level % 2
+    })
+
+    // add
+    users.Add(&User{"Lee", 1})
+    users.Add(&User{"Maa", 2})
+    users.Add(&User{"Ann", 4})
+
+    // get all even level users
+    var even []User
+    index.From(0).Find(&even)
+
+    // here we should get Maa and Ann
+}
+```
 
 ## Benchmarks
 
@@ -38,14 +72,14 @@ So theoretically, the performance should be nearly the same with bare get and se
 Run `go test -bench Benchmark -benchmem`, here's a sample output:
 
 ```txt
-BenchmarkBadgerSet-6         	   20000	     72012 ns/op	    2539 B/op	      81 allocs/op
-BenchmarkSet-6               	   20000	     73290 ns/op	    2756 B/op	      96 allocs/op
-BenchmarkSetWithIndex-6      	   20000	     77295 ns/op	    3318 B/op	     120 allocs/op
-BenchmarkBadgerGet-6         	 1000000	      1420 ns/op	     528 B/op	      13 allocs/op
-BenchmarkGet-6               	 1000000	      1555 ns/op	     624 B/op	      19 allocs/op
-BenchmarkBadgerPrefixGet-6   	  500000	      3861 ns/op	    1552 B/op	      34 allocs/op
-BenchmarkGetByIndex-6        	  300000	      4187 ns/op	    1584 B/op	      43 allocs/op
-BenchmarkFilter-6            	   50000	     23884 ns/op	    7870 B/op	     193 allocs/op
+BenchmarkBadgerSet-6            20000     72780 ns/op    2571 B/op      81 allocs/op
+BenchmarkSet-6                  20000     74056 ns/op    2755 B/op      95 allocs/op
+BenchmarkSetWithIndex-6         20000     79945 ns/op    3666 B/op     134 allocs/op
+BenchmarkBadgerGet-6          1000000      1392 ns/op     528 B/op      13 allocs/op
+BenchmarkGet-6                1000000      1769 ns/op     624 B/op      19 allocs/op
+BenchmarkBadgerPrefixGet-6     500000      3672 ns/op    1552 B/op      34 allocs/op
+BenchmarkGetByIndex-6          300000      4615 ns/op    1792 B/op      46 allocs/op
+BenchmarkFilter-6               50000     23635 ns/op    7742 B/op     185 allocs/op
 ```
 
 The ones named with badger are using badger direct to manipulate data, the ones after each badger benchmark
