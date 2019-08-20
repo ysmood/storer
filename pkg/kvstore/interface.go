@@ -20,7 +20,7 @@ type Store interface {
 type DoTxn func(txn Txn) error
 
 // ErrKeyNotFound ...
-var ErrKeyNotFound = errors.New("key doesn't exists")
+var ErrKeyNotFound = errors.New("kvstore: key doesn't exists")
 
 // Txn the transaction interface
 type Txn interface {
@@ -40,7 +40,7 @@ type Txn interface {
 }
 
 // ErrStop ...
-var ErrStop = errors.New("stop iteration")
+var ErrStop = errors.New("kvstore: stop iteration")
 
 // Iteratee ...
 type Iteratee func(key []byte) error
