@@ -1,6 +1,7 @@
 package typee_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -8,14 +9,31 @@ import (
 	"github.com/ysmood/storer/pkg/typee"
 )
 
-type TestType struct {
-	String string
-	Int    int
-}
-
 func TestGenTypeID(t *testing.T) {
+	type TestType struct {
+		String string
+		Int    int
+	}
+
 	hash := typee.GenTypeID(&TestType{}).ID
 	assert.Equal(t, "04182418b3f271d3b24b75da9902a174", fmt.Sprintf("%x", hash))
+
+	id := typee.GenID(&TestType{})
+	assert.Len(t, id, 12)
+}
+
+type TestGenIDType struct {
+}
+
+var _ typee.Unique = &TestGenIDType{}
+
+func (t *TestGenIDType) UUID() []byte {
+	return []byte("ok")
+}
+
+func TestGenID(t *testing.T) {
+	id := typee.GenID(&TestGenIDType{})
+	assert.Equal(t, []byte("ok"), id)
 }
 
 type UserV0 struct {
@@ -64,4 +82,28 @@ func TestMigration(t *testing.T) {
 	var vFrom1 User
 	_ = typee.Decode(data1, &vFrom1, nil)
 	assert.Equal(t, "1", vFrom1.Name)
+}
+
+type EncodeErr struct {
+	err error
+}
+
+func (e *EncodeErr) Encode() ([]byte, error) {
+	return nil, e.err
+}
+
+func (e *EncodeErr) Decode([]byte) error {
+	return e.err
+}
+
+var _ typee.Encoding = &EncodeErr{}
+
+func TestEncodeErr(t *testing.T) {
+	err := errors.New("err")
+	_, e := typee.Encode(&EncodeErr{}, nil)
+	assert.Equal(t, err, e)
+
+	var item EncodeErr
+	e = typee.Decode([]byte{}, &item, nil)
+	assert.Equal(t, err, e)
 }

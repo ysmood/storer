@@ -74,27 +74,6 @@ func TestHexErr(t *testing.T) {
 	assert.EqualError(t, users.Del("."), "encoding/hex: invalid byte: U+002E '.'")
 }
 
-type EncodeErr struct {
-	err error
-}
-
-func (e *EncodeErr) Encode() ([]byte, error) {
-	return nil, e.err
-}
-
-func (e *EncodeErr) Decode([]byte) error {
-	return e.err
-}
-
-var _ typee.Encoding = &EncodeErr{}
-
-func TestEncodeErr(t *testing.T) {
-	err := errors.New("err")
-	list := store.ListWithName(kit.RandString(10), &EncodeErr{})
-	_, e := list.Add(&EncodeErr{err})
-	assert.Equal(t, err, e)
-}
-
 func TestListErrs(t *testing.T) {
 	testErr := errors.New("err")
 
