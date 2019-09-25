@@ -6,8 +6,7 @@
 
 On-disk high-performance lightweight object storage for golang. This project is based on my research of
 the minimum interface to create an efficient indexable database with a key-value store.
-It's a proof of concept for [pkg/kvstore](pkg/kvstore/interface.go). My next plan is to implement the
-key-only distributed database [design](pkg/kdb/interface.go).
+It's a proof of concept for [pkg/kvstore](pkg/kvstore/interface.go).
 
 Sometimes single point of failure also means low resource wasting and easy to debug.
 So it's not a bad idea to use embedded db at the early stage of a project until fault tolerance and scalability
