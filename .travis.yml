@@ -1,10 +1,7 @@
 language: go
 
-go:
-  - 1.12.x
-
 script:
-  - go get github.com/ysmood/kit/cmd/godev
+  - curl -L https://git.io/fjaxx | repo=ysmood/kit bin=godev sh
   - godev -l -m80
 
 after_success:
