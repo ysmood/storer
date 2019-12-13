@@ -152,5 +152,5 @@ func TestListEach(t *testing.T) {
 		})
 	})
 
-	assert.Equal(t, []User{User{"jack", 1}, User{"jack", 2}}, res)
+	assert.Equal(t, []User{{"jack", 1}, {"jack", 2}}, res)
 }
