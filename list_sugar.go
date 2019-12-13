@@ -122,7 +122,7 @@ func (list *List) Index(id string, fn interface{}) (index *Index) {
 }
 
 // ErrUniqueIndex ...
-var ErrUniqueIndex = errors.New("index already exists")
+var ErrUniqueIndex = errors.New("[storer] index already exists")
 
 // UniqueIndex ...
 func (list *List) UniqueIndex(id string, fn interface{}) (index *Index) {

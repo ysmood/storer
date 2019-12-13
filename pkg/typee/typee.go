@@ -73,7 +73,7 @@ func Encode(item interface{}, mapper Mapper) (data []byte, err error) {
 }
 
 // ErrMigrated ...
-var ErrMigrated = errors.New("migrated")
+var ErrMigrated = errors.New("[storer.typee] migrated")
 
 // Decode when data is migrated ErrMigrated will be returned
 func Decode(versioned []byte, item interface{}, mapper Mapper) error {
@@ -115,7 +115,7 @@ func Decode(versioned []byte, item interface{}, mapper Mapper) error {
 }
 
 // ErrNotMigratable ...
-var ErrNotMigratable = errors.New("item must implement Migratable interface")
+var ErrNotMigratable = errors.New("[storer.typee] item must implement Migratable interface")
 
 func migrateTasks(item interface{}, version []byte, mapper Mapper) ([]Migratable, interface{}, error) {
 	if mapper == nil {
@@ -201,7 +201,7 @@ func GenTypeID(item interface{}) *TypeID {
 }
 
 // ErrNotPtr ...
-var ErrNotPtr = errors.New("must be a pointer to the item")
+var ErrNotPtr = errors.New("[storer.typee] must be a pointer to the item")
 
 func getElemType(item interface{}) reflect.Type {
 	t := reflect.TypeOf(item)

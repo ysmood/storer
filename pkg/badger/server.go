@@ -86,7 +86,7 @@ func Serve(db *Badger, l net.Listener) error {
 func (txn *serverTxn) handleConn() {
 	action, update, err := txn.read()
 	if action != actionBegin {
-		txn.response(nil, errors.New("must begin with actionBegin"))
+		txn.response(nil, errors.New("[storer.badger] must begin with actionBegin"))
 		return
 	}
 	if err != nil {
@@ -99,7 +99,7 @@ func (txn *serverTxn) handleConn() {
 
 	action, _, err = txn.read()
 	if action != actionEnd {
-		txn.response(nil, errors.New("must end with actionEnd"))
+		txn.response(nil, errors.New("[storer.badger] must end with actionEnd"))
 		return
 	}
 	if err != nil {
@@ -162,7 +162,7 @@ func (txn *serverTxn) do(t kvstore.Txn) error {
 			return nil
 
 		default:
-			return errors.New("unknown action")
+			return errors.New("[storer.badger] unknown action")
 		}
 	}
 }

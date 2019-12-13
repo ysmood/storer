@@ -9,7 +9,7 @@ import (
 )
 
 // ErrIndexExists ...
-var ErrIndexExists = errors.New("index already exists")
+var ErrIndexExists = errors.New("[storer] index already exists")
 
 // List ...
 type List struct {

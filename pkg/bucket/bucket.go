@@ -15,7 +15,7 @@ var nameMapPrefix = byframe.EncodeHeader(0)
 var ErrKeyNotFound = kvstore.ErrKeyNotFound
 
 // ErrEmptyName ...
-var ErrEmptyName = errors.New("bucket: name cannot be empty")
+var ErrEmptyName = errors.New("[storer.bucket] name cannot be empty")
 
 // Txn ...
 type Txn = kvstore.Txn

@@ -40,7 +40,7 @@ func (ctx *FromCtx) Has() (bool, error) {
 }
 
 // ErrNotFound ...
-var ErrNotFound = errors.New("Not found")
+var ErrNotFound = errors.New("[storer] not found")
 
 // Find items can be a list or a singular
 func (ctx *FromCtx) Find(items interface{}) error {
@@ -80,7 +80,7 @@ func (ctx *FromCtx) Find(items interface{}) error {
 }
 
 // ErrFilterReturn ...
-var ErrFilterReturn = errors.New("filter wrong return type")
+var ErrFilterReturn = errors.New("[storer] filter wrong return type")
 
 // Filter to stop the filter return ErrStop
 func (ctx *FromCtx) Filter(items interface{}, fn interface{}) error {
