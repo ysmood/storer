@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	originBadger "github.com/dgraph-io/badger"
+	originBadger "github.com/dgraph-io/badger/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
