@@ -173,7 +173,13 @@ func (ctx *FromCtx) Reverse() *FromCtx {
 
 // Each ...
 func (ctx *FromCtx) Each(fn Iteratee) error {
-	prefix := ctx.txnCtx.index.bucket.Prefix(byframe.Encode(ctx.from))
+	var from []byte
+	if ctx.from == nil {
+		from = []byte{}
+	} else {
+		from = byframe.Encode(ctx.from)
+	}
+	prefix := ctx.txnCtx.index.bucket.Prefix(from)
 
 	return ctx.txnCtx.txn.Do(ctx.reverse, prefix, func(key []byte) error {
 		// if the key doesn't match the bucket prefix, it means
