@@ -8,10 +8,10 @@ On-disk high-performance lightweight object storage for golang. This project is 
 the minimum interface to create an efficient indexable database with a key-value store.
 It's a proof of concept for [pkg/kvstore](pkg/kvstore/interface.go).
 
-Sometimes single point of failure also means low resource wasting and easy to debug.
-So it's not a bad idea to use embedded db at the early stage of a project until fault tolerance and scalability
-are necessary. Storer enables you transparently swap the backend to dbs like [tikv](https://tikv.org/) or postgres.
-Currently badger and postgres are supported. It's fairly easy to create new adapters, only need to implement 5 functions.
+Sometimes a single point of failure also means low resource wasting and easy to debug.
+So it's not a bad idea to use embedded DB at the early stage of a project until fault tolerance and scalability
+are necessary. Storer enables you transparently swap the backend to DBS like [tikv](https://tikv.org/) or Postgres.
+Currently, badger and Postgres are supported. It's fairly easy to create new adapters, only need to implement 5 functions.
 
 ## Features
 

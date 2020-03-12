@@ -1,10 +1,10 @@
 # bucket
 
-This bucket lib is dependency free, you can use whatever backend you want.
+This bucket lib is dependency-free, you can use whatever backend you want.
 This lib uses the [byframe](https://github.com/ysmood/byframe)
 to prevent prefix conflict when dealing with large number of buckets.
 
-Key conflict example, numbers are hex based.
+Key conflict example, numbers are hex-based.
 
 ```txt
 |     whole key       |
@@ -23,15 +23,15 @@ Key conflict example, numbers are hex based.
 As you can see the mark_a's whole-key is the prefix of mark_b.
 So when you do prefix search for "0x01 01" mark_a will also be in the result.
 
-The key is randomly passed from user, so it can be any content. Therefore the
+The key is randomly passed from the user, so it can be any content. Therefore the
 design to prevent the conflict should be based on the prefix encoding itself.
 If we can make sure the short prefix won't be the prefix of longer prefix then
 the problem will be solved. [byframe](https://github.com/ysmood/byframe) is used to
-enables it.
+enable this.
 
 Here's an example for 200 buckets.
 
-We insert data by these pseudo code:
+We insert data by this pseudo-code:
 
 ```go
 one = newBucket("bucket-01")
