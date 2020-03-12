@@ -80,6 +80,19 @@ func TestFindAll(t *testing.T) {
 	assert.Equal(t, 30, items[0].Level+items[1].Level)
 }
 
+func TestReverseFind(t *testing.T) {
+	users := store.ListWithName(kit.RandString(10), &User{})
+	index := users.Index("name", func(u *User) interface{} {
+		return u.Name
+	})
+
+	_ = store.View(func(txn storer.Txn) error {
+		items := []User{}
+		assert.Equal(t, index.Txn(txn).From(0).Reverse().Find(&items), storer.ErrNoReverse)
+		return nil
+	})
+}
+
 func TestFromGetErr(t *testing.T) {
 	testErr := errors.New("err")
 

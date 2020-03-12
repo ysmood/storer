@@ -42,12 +42,20 @@ func (ctx *FromCtx) Has() (bool, error) {
 // ErrNotFound ...
 var ErrNotFound = errors.New("[storer] not found")
 
+// ErrNoReverse ...
+var ErrNoReverse = errors.New("[storer] reverse option is illegal")
+
 // Find items can be a list or a singular
 func (ctx *FromCtx) Find(items interface{}) error {
 	listValue := reflect.ValueOf(items).Elem()
 	isList := listValue.Kind() == reflect.Slice
 	itemType := ctx.txnCtx.index.list.dict.typeID.Type
 	noItem := true
+
+	// reverse find is meaningless
+	if ctx.reverse {
+		return ErrNoReverse
+	}
 
 	err := ctx.Each(func(ctx *IterCtx) error {
 		if !ctx.prefix() {
