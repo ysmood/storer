@@ -6,6 +6,7 @@ import (
 
 	originBadger "github.com/dgraph-io/badger/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/ysmood/kit"
 	"github.com/ysmood/storer/pkg/badger"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
@@ -38,7 +39,7 @@ func TestBasic(t *testing.T) {
 		return nil
 	})
 
-	db.Close()
+	kit.E(db.Close())
 }
 
 func TestIteration(t *testing.T) {

@@ -28,7 +28,7 @@ func TestBasic(t *testing.T) {
 	})
 
 	// simulate to close the db file
-	db.Close()
+	kit.E(db.Close())
 
 	// open the db file again
 	_ = badger.New(dir).Do(true, func(txn kvstore.Txn) error {

@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/ysmood/byframe"
+	"github.com/ysmood/kit"
 	"github.com/ysmood/storer/pkg/kvstore"
 )
 
@@ -37,7 +38,7 @@ func (c *Client) Do(update bool, fn kvstore.DoTxn) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { kit.E(conn.Close()) }()
 
 	txn := &ClientTxn{
 		conn:    conn,
