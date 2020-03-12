@@ -9,8 +9,18 @@ import (
 	"github.com/ysmood/storer/pkg/postgres"
 )
 
+var db = postgres.New("")
+
+func clean() {
+	kit.E(db.Do(true, func(txn kvstore.Txn) error {
+		return txn.Do(false, nil, func(k []byte) error {
+			return txn.Delete(k)
+		})
+	}))
+}
+
 func TestBasic(t *testing.T) {
-	db := postgres.New("")
+	clean()
 
 	kit.E(db.Do(true, func(txn kvstore.Txn) error {
 		err := txn.Set([]byte("key"), []byte("val"))
@@ -18,6 +28,9 @@ func TestBasic(t *testing.T) {
 		val, err := txn.Get([]byte("key"))
 		kit.E(err)
 		assert.Equal(t, []byte("val"), val)
+
+		_, err = txn.Get([]byte("not-exists"))
+		assert.Equal(t, err, kvstore.ErrKeyNotFound)
 
 		return txn.Do(false, nil, func(key []byte) error {
 			assert.Equal(t, []byte("key"), key)
@@ -27,7 +40,8 @@ func TestBasic(t *testing.T) {
 }
 
 func TestIteration(t *testing.T) {
-	db := postgres.New("")
+	clean()
+
 	list := [][]byte{}
 
 	kit.E(db.Do(true, func(txn kvstore.Txn) error {

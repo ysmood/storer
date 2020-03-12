@@ -26,7 +26,7 @@ func New(connStr string) *PG {
 	var dbName string
 	if connStr == "" {
 		dbName = utils.RandString(10)
-		connStr = "user=postgres sslmode=disable"
+		connStr = "user=postgres password=postgres sslmode=disable"
 	}
 
 	db, err := sql.Open("postgres", connStr)
@@ -36,7 +36,7 @@ func New(connStr string) *PG {
 		_, err = db.Exec(fmt.Sprintf(`CREATE DATABASE "%s";`, dbName))
 		utils.E(err)
 		utils.E(db.Close())
-		db, err = sql.Open("postgres", fmt.Sprintf(`user=postgres sslmode=disable dbname=%s`, dbName))
+		db, err = sql.Open("postgres", fmt.Sprintf(`%s dbname=%s`, connStr, dbName))
 		utils.E(err)
 	}
 
