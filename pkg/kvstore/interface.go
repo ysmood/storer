@@ -3,12 +3,12 @@ package kvstore
 import "errors"
 
 // The minimum interface to create an efficient indexable database with a key-value store.
-// When any reduce for the interface design will dramatically impact the performance we can think the
+// When any reduction of the interface design will dramatically impact the performance we can say the
 // design is stable.
 //
 // The reason to use callback style is because some database may use resources that need to be cleaned up
 // after certain operations, such as the lock to avoid race condition. Callback can abstract them away.
-// The bottleneck is alway the underlaying syscalls, seldom it will be the creation of callback functions.
+// The bottleneck is alway the underlaying syscalls, not the creation of callback functions.
 
 // Store the persistent store for value
 type Store interface {
