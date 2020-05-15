@@ -20,11 +20,11 @@ type Store interface {
 type DoTxn func(txn Txn) error
 
 // ErrKeyNotFound ...
-var ErrKeyNotFound = errors.New("[storer.kvstore] key doesn't exists")
+var ErrKeyNotFound = errors.New("[storer.kvstore] key doesn't exist")
 
 // Txn the transaction interface
 type Txn interface {
-	// Get when err is ErrKeyNotFound the key doesn't exist
+	// Get an item. when err is ErrKeyNotFound the key doesn't exist
 	Get(key []byte) (value []byte, err error)
 
 	// Set set item with key and value
