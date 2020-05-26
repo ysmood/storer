@@ -90,6 +90,6 @@ can be ignored when compared with disk IO overhead.
 
 ## Development
 
-Check the [travis file](.travis.yml) for the command for testing.
+Check the settings of Github Actions for testing.
 
 The sugar files can be removed, it doesn't affect the core functions.
