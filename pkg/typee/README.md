@@ -27,7 +27,7 @@ T {
 }
 ```
 
-The relationshop is `T0 -> T1 -> T`, the hash of each type will be like:
+The history relationship is `T0 -> T1 -> T`, the hash of each type will be like:
 
 - T0: `{Age int}` -> `0x01`
 - T1: `{Age int}{Age string}` -> `0x02`
